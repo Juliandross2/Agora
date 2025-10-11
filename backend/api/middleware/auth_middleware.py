@@ -1,9 +1,5 @@
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.tokens import UntypedToken
-from api.usuario.services.usuario_service import UsuarioService
 import jwt
 from django.conf import settings
 
@@ -21,33 +17,37 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         '/api/auth/token/refresh/',
     ]
     
-    def __init__(self, get_response):
-        super().__init__(get_response)
-        self.usuario_service = UsuarioService()
-    
     def process_request(self, request):
         """
         Procesa la request antes de que llegue a la vista
         """
         path = request.path
+        print(f"[MIDDLEWARE] Procesando ruta: {path}")
+        print(f"[MIDDLEWARE] Método: {request.method}")
         
         # Verificar si la URL está exenta de autenticación
         if any(path.startswith(exempt_url) for exempt_url in self.EXEMPT_URLS):
+            print(f"[MIDDLEWARE] Ruta exenta de autenticación: {path}")
             return None
             
         # Verificar si es una request OPTIONS (preflight CORS)
         if request.method == 'OPTIONS':
+            print(f"[MIDDLEWARE] Request OPTIONS detectada")
             return None
         
         # Extraer token del header Authorization
         auth_header = request.META.get('HTTP_AUTHORIZATION')
+        print(f"[MIDDLEWARE] Authorization header: {auth_header}")
+        
         if not auth_header or not auth_header.startswith('Bearer '):
+            print(f"[MIDDLEWARE] Token no encontrado o formato incorrecto")
             return JsonResponse({
                 'error': 'Token de autenticación requerido',
                 'code': 'AUTHENTICATION_REQUIRED'
             }, status=401)
         
         token = auth_header.split(' ')[1]
+        print(f"[MIDDLEWARE] Token extraído: {token[:20]}...")
         
         try:
             # Decodificar token para obtener información del usuario
@@ -56,17 +56,27 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
                 settings.SECRET_KEY, 
                 algorithms=['HS256']
             )
+            print(f"[MIDDLEWARE] Token decodificado: {decoded_token}")
             
             user_id = decoded_token.get('user_id')
             if not user_id:
+                print(f"[MIDDLEWARE] user_id no encontrado en el token")
                 return JsonResponse({
                     'error': 'Token inválido: user_id no encontrado',
                     'code': 'INVALID_TOKEN'
                 }, status=401)
             
+            print(f"[MIDDLEWARE] user_id extraído: {user_id}")
+            
+            # Importar aquí para evitar importación circular
+            from api.usuario.models.usuario import Usuario
+            
             # Obtener usuario de la base de datos
-            usuario = self.usuario_service.obtener_usuario_por_id(user_id)
-            if not usuario:
+            try:
+                usuario = Usuario.objects.get(usuario_id=user_id, es_activo=True)
+                print(f"[MIDDLEWARE] Usuario encontrado: {usuario.nombre_usuario}")
+            except Usuario.DoesNotExist:
+                print(f"[MIDDLEWARE] Usuario no encontrado en BD para user_id: {user_id}")
                 return JsonResponse({
                     'error': 'Usuario no encontrado',
                     'code': 'USER_NOT_FOUND'
@@ -75,18 +85,22 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
             # Agregar información del usuario al request
             request.user_id = user_id
             request.usuario = usuario
+            print(f"[MIDDLEWARE] Información de usuario agregada al request")
             
         except jwt.ExpiredSignatureError:
+            print(f"[MIDDLEWARE] Token expirado")
             return JsonResponse({
                 'error': 'Token expirado',
                 'code': 'TOKEN_EXPIRED'
             }, status=401)
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            print(f"[MIDDLEWARE] Token inválido: {e}")
             return JsonResponse({
                 'error': 'Token inválido',
                 'code': 'INVALID_TOKEN'
             }, status=401)
         except Exception as e:
+            print(f"[MIDDLEWARE] Error inesperado: {e}")
             return JsonResponse({
                 'error': f'Error de autenticación: {str(e)}',
                 'code': 'AUTHENTICATION_ERROR'

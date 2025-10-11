@@ -1,6 +1,5 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.exceptions import ValidationError
-from api.usuario.repositories.usuario_repository import UsuarioRepository
 from api.usuario.serializers.usuario_serializer import (
     UsuarioRegisterSerializer, 
     UsuarioResponseSerializer
@@ -10,9 +9,6 @@ from typing import Dict, Tuple, Optional
 
 class UsuarioService:
     """Servicio para manejar la lógica de negocio del Usuario"""
-    
-    def __init__(self):
-        self.repository = UsuarioRepository()
     
     def registrar_usuario(self, data: dict) -> Tuple[bool, Dict]:
         """
@@ -29,13 +25,13 @@ class UsuarioService:
                 }
             
             # Verificar si el email ya existe
-            if self.repository.existe_email(data['email_usuario']):
+            if Usuario.objects.filter(email_usuario=data['email_usuario']).exists():
                 return False, {
                     'error': 'El email ya está registrado'
                 }
             
             # Verificar si el nombre de usuario ya existe
-            if self.repository.existe_nombre_usuario(data['nombre_usuario']):
+            if Usuario.objects.filter(nombre_usuario=data['nombre_usuario']).exists():
                 return False, {
                     'error': 'El nombre de usuario ya existe'
                 }
@@ -58,11 +54,6 @@ class UsuarioService:
                 'access': str(refresh.access_token)
             }
             
-        except ValidationError as e:
-            return False, {
-                'error': 'Error de validación',
-                'details': str(e)
-            }
         except Exception as e:
             return False, {
                 'error': 'Error interno del servidor',
@@ -75,16 +66,18 @@ class UsuarioService:
         Returns: (success: bool, response: dict)
         """
         try:
-            # Buscar usuario por email
-            usuario = self.repository.obtener_por_email(email)
+            from django.contrib.auth.hashers import check_password
             
-            if not usuario:
+            # Buscar usuario por email
+            try:
+                usuario = Usuario.objects.get(email_usuario=email, es_activo=True)
+            except Usuario.DoesNotExist:
                 return False, {
                     'error': 'Usuario no encontrado'
                 }
             
             # Verificar contraseña
-            if not self.repository.verificar_contrasenia(usuario, contrasenia):
+            if not check_password(contrasenia, usuario.contrasenia):
                 return False, {
                     'error': 'Contraseña incorrecta'
                 }
@@ -112,7 +105,10 @@ class UsuarioService:
     
     def obtener_usuario_por_id(self, usuario_id: int) -> Optional[Usuario]:
         """Obtener usuario por ID"""
-        return self.repository.obtener_por_id(usuario_id)
+        try:
+            return Usuario.objects.get(usuario_id=usuario_id, es_activo=True)
+        except Usuario.DoesNotExist:
+            return None
     
     def obtener_perfil_usuario(self, usuario_id: int) -> Tuple[bool, Dict]:
         """
@@ -120,7 +116,7 @@ class UsuarioService:
         Returns: (success: bool, response: dict)
         """
         try:
-            usuario = self.repository.obtener_por_id(usuario_id)
+            usuario = self.obtener_usuario_por_id(usuario_id)
             
             if not usuario:
                 return False, {

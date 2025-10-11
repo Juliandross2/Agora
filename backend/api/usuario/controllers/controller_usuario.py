@@ -16,7 +16,6 @@ class UsuarioController:
 usuario_controller = UsuarioController()
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def register(request):
     """
     Registrar un nuevo usuario
@@ -56,7 +55,6 @@ def register(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def login(request):
     """
     Autenticar usuario (login)
@@ -99,37 +97,58 @@ def login(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def profile(request):
     """
     Obtener perfil del usuario autenticado
     """
     try:
-        # El usuario_id debe venir del token JWT decodificado
-        # Para esto necesitamos modificar el middleware para extraer el user_id del token
+        print(f"[CONTROLLER] Procesando perfil de usuario")
+        print(f"[CONTROLLER] Headers: {dict(request.headers)}")
+        
+        # El usuario_id debe venir del middleware JWT
         user_id = getattr(request, 'user_id', None)
+        usuario = getattr(request, 'usuario', None)
+        
+        print(f"[CONTROLLER] user_id del middleware: {user_id}")
+        print(f"[CONTROLLER] usuario del middleware: {usuario}")
         
         if not user_id:
+            print(f"[CONTROLLER] user_id no encontrado en el request")
             return Response({
-                'error': 'Token inválido o usuario no encontrado'
+                'error': 'Token inválido o usuario no encontrado',
+                'debug': 'user_id no está en el request'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if not usuario:
+            print(f"[CONTROLLER] usuario no encontrado en el request")
+            return Response({
+                'error': 'Usuario no encontrado en el middleware',
+                'debug': f'user_id encontrado: {user_id}'
             }, status=status.HTTP_401_UNAUTHORIZED)
         
         # Llamar al servicio para obtener perfil
         success, response = usuario_controller.service.obtener_perfil_usuario(user_id)
         
         if success:
+            print(f"[CONTROLLER] Perfil obtenido exitosamente")
             return Response(response, status=status.HTTP_200_OK)
         else:
-            return Response(response, status=status.HTTP_404_NOT_FOUND)
+            print(f"[CONTROLLER] Error al obtener perfil")
+            return Response({
+                **response,
+                'debug': f'Servicio falló para user_id: {user_id}'
+            }, status=status.HTTP_404_NOT_FOUND)
             
     except Exception as e:
+        print(f"[CONTROLLER] Excepción en profile: {e}")
         return Response({
             'error': 'Error interno del servidor',
-            'details': str(e)
+            'details': str(e),
+            'debug': f'Exception en profile endpoint'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
+        
 @api_view(['GET'])
-@permission_classes([AllowAny])
 def test_connection(request):
     """
     Endpoint de prueba para verificar conexión
