@@ -1,5 +1,6 @@
 from django.db import models
-class usuario(models.Model):
+
+class Usuario(models.Model):
     usuario_id = models.AutoField(primary_key=True)
     nombre_usuario = models.CharField(max_length=100, null=False)
     email_usuario = models.EmailField(max_length=100, null=False, unique=True)
