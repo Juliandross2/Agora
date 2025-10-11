@@ -17,6 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from api.usuario.controllers.controller_usuario import login, register, profile, test_connection
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # URLs de autenticación de usuario
+    path('api/usuario/login/', login, name='usuario_login'),
+    path('api/usuario/register/', register, name='usuario_register'),
+    path('api/usuario/profile/', profile, name='usuario_profile'),
+    path('api/usuario/test/', test_connection, name='usuario_test'),
 ]
