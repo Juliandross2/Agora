@@ -1,0 +1,27 @@
+ -- Activar Venv
+ .venv\Scripts\Activate.bat
+
+ -- Ejecutar app 
+python manage.py runserver 0.0.0.0:8000
+
+-- Migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+-- Instalar requerimientos(recuerda hacerlo en tu venv)
+pip install -r requirements.txt 
+
+--Mirar base de datos
+python manage.py dbshell
+
+-- Añadir dependencias a requirements
+pip freeze > requirements.txt
+
+-- Instalar mysql client
+pip install mysqlclient
+
+-- Docker para mysql
+docker run --name pocket-mysql -e MYSQL_ROOT_PASSWORD=pocket123 -e MYSQL_DATABASE=pocket_db -p 3306:3306 -d mysql:8.0
+
+-- Acceder a MySQL Command Line 
+mysql -u root -p
