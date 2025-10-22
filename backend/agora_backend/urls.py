@@ -15,23 +15,30 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 from api.usuario.controllers.controller_usuario import login, register, profile, test_connection
 from api.programa.controllers.controller_programa import (
-    listar_programas, obtener_programa, crear_programa, actualizar_programa, 
+    listar_programas, obtener_programa, crear_programa, actualizar_programa,
     eliminar_programa, listar_programas_activos, buscar_programas, test_programa_connection
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # URLs de autenticación de usuario
+
+    # documentación / esquema OpenAPI
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # usuario
     path('api/usuario/login/', login, name='usuario_login'),
     path('api/usuario/register/', register, name='usuario_register'),
     path('api/usuario/profile/', profile, name='usuario_profile'),
     path('api/usuario/test/', test_connection, name='usuario_test'),
-    
-    # URLs de programa
+
+    # programa
     path('api/programa/', listar_programas, name='programa_list'),
     path('api/programa/<int:programa_id>/', obtener_programa, name='programa_detail'),
     path('api/programa/crear/', crear_programa, name='programa_create'),
