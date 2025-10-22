@@ -2,9 +2,13 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from fastapi import FastAPI
+from services.lector_csv import LectorCSV
+
 
 
 def main():
+    
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'agora_backend.settings')
     try:
