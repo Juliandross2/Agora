@@ -3,8 +3,6 @@
 import os
 import sys
 from fastapi import FastAPI
-from services.lector_csv import LectorCSV
-
 
 
 def main():

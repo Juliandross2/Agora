@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from api.usuario.services.usuario_service import UsuarioService
-from api.usuario.serializers.usuario_serializer import UsuarioLoginSerializer
+from api.usuario.serializers.usuario_serializer import UsuarioLoginSerializer, UsuarioRegisterSerializer, UsuarioResponseSerializer
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
 import json
 
 class UsuarioController:
@@ -14,7 +15,25 @@ class UsuarioController:
 
 # Instancia global del controller
 usuario_controller = UsuarioController()
-
+@extend_schema(
+    request=UsuarioRegisterSerializer,
+    responses={
+        201: OpenApiResponse(response=UsuarioResponseSerializer, description="Usuario creado"),
+        400: OpenApiResponse(description="Campos inválidos")
+    },
+    examples=[
+        OpenApiExample(
+            "RegisterExample",
+            value={
+                "nombre_usuario": "john_doe",
+                "email_usuario": "john.doe@example.com",
+                "contrasenia": "MiPassword123!",
+                "confirmar_contrasenia": "MiPassword123!"
+            },
+            media_type="application/json"
+        )
+    ],
+)
 @api_view(['POST'])
 def register(request):
     """
@@ -54,6 +73,38 @@ def register(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(
+    request=UsuarioLoginSerializer,
+    responses={
+        200: OpenApiResponse(description="Login exitoso (devuelve tokens y datos de usuario)"),
+        401: OpenApiResponse(description="Credenciales inválidas")
+    },
+    examples=[
+        OpenApiExample(
+            "LoginExample",
+            value={
+                "email_usuario": "john.doe@example.com",
+                "contrasenia": "MiPassword123!"
+            },
+            media_type="application/json"
+        ),
+        OpenApiExample(
+            "LoginResponseExample",
+            value={
+                "message": "Login exitoso",
+                "user": {
+                    "usuario_id": 1,
+                    "nombre_usuario": "john_doe",
+                    "email_usuario": "john.doe@example.com",
+                    "es_activo": True
+                },
+                "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+            },
+            media_type="application/json"
+        )
+    ]
+)
 @api_view(['POST'])
 def login(request):
     """
@@ -95,7 +146,12 @@ def login(request):
             'error': 'Error interno del servidor',
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+@extend_schema(
+    responses={
+        200: OpenApiResponse(response=UsuarioResponseSerializer, description="Perfil del usuario"),
+        401: OpenApiResponse(description="Token inválido o no proporcionado")
+    },
+)
 @api_view(['GET'])
 def profile(request):
     """
@@ -147,7 +203,9 @@ def profile(request):
             'debug': f'Exception en profile endpoint'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
+@extend_schema(
+    responses={200: OpenApiResponse(description="API Usuario funcionando correctamente")}
+)
 @api_view(['GET'])
 def test_connection(request):
     """
