@@ -15,6 +15,9 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         '/api/usuario/register/',
         '/api/usuario/test/',
         '/api/auth/token/refresh/',
+        '/api/docs/swagger/',
+        '/api/schema/',
+        '/api/docs/redoc/',
     ]
     
     def process_request(self, request):

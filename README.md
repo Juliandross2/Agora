@@ -1,5 +1,20 @@
 # Agora
 Programa para facilitar el proceso de comparar pemsa en el contexto del proceso de electivas de la facultad de electrónica de la Universidad del Cauca
+## Pasos para conectar el frontend
+cd "d:\Ingenieria\8vo semestre\Agora\frontend\agora_frontend"
+
+### instalar runtime y router + vite
+npm install react-dom react-router-dom
+
+### instalar Vite (dev) y plugin react si usas Vite
+npm install -D vite @vitejs/plugin-react
+
+### instalar Tailwind y PostCSS
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+### instalar icon set que el layout sugiere (lucide)
+npm install lucide-react
 
 
 ## Pasos para conectar el backend
