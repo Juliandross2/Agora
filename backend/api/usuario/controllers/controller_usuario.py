@@ -33,6 +33,7 @@ usuario_controller = UsuarioController()
             media_type="application/json"
         )
     ],
+    tags=['usuario']
 )
 @api_view(['POST'])
 def register(request):
@@ -103,7 +104,8 @@ def register(request):
             },
             media_type="application/json"
         )
-    ]
+    ],
+    tags=['usuario']
 )
 @api_view(['POST'])
 def login(request):
@@ -151,6 +153,7 @@ def login(request):
         200: OpenApiResponse(response=UsuarioResponseSerializer, description="Perfil del usuario"),
         401: OpenApiResponse(description="Token inválido o no proporcionado")
     },
+    tags=['usuario']
 )
 @api_view(['GET'])
 def profile(request):
@@ -204,7 +207,8 @@ def profile(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 @extend_schema(
-    responses={200: OpenApiResponse(description="API Usuario funcionando correctamente")}
+    responses={200: OpenApiResponse(description="API Usuario funcionando correctamente")},
+    tags=['usuario']
 )
 @api_view(['GET'])
 def test_connection(request):

@@ -196,3 +196,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Añadir configuración de drf-spectacular y las tags (categorías) que aparecerán en la UI
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Agora API',
+    'DESCRIPTION': 'Documentación de la API de Agora, agrupada por categorías después de /api/',
+    'VERSION': '1.0.0',
+    'TAGS': [
+        {'name': 'usuario', 'description': 'Operaciones relacionadas con usuarios (login, register, profile)'},
+        {'name': 'programa', 'description': 'Operaciones relacionadas con programas'},
+        {'name': 'oferta-electiva', 'description': 'Operaciones relacionadas con ofertas de electiva'},
+    ],
+}
