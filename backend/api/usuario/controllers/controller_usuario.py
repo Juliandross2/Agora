@@ -219,3 +219,39 @@ def test_connection(request):
         'message': 'API Usuario funcionando correctamente',
         'status': 'OK'
     }, status=status.HTTP_200_OK)
+
+@extend_schema(tags=['usuario'], summary="Desactivar usuario (solo puede desactivar su propia cuenta)")
+@api_view(['DELETE'])
+@permission_classes([AllowAny])  # El middleware JWT valida token; cambiar a IsAuthenticated si usa DRF auth
+def desactivar_usuario(request, usuario_id):
+    """
+    Desactivar usuario:
+     - Solo el propio usuario (token.user_id debe ser igual a usuario_id) puede desactivar su cuenta.
+     - No permite desactivar el último usuario activo del sistema.
+    """
+    try:
+        # user_id proviene del middleware JWT custom
+        user_id = getattr(request, 'user_id', None)
+        if not user_id:
+            return Response({'error': 'Token inválido o usuario no autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            if int(user_id) != int(usuario_id):
+                return Response({'error': 'No autorizado: solo puede desactivar su propia cuenta'}, status=status.HTTP_401_UNAUTHORIZED)
+        except (TypeError, ValueError):
+            return Response({'error': 'ID de usuario inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        success, response = usuario_controller.service.desactivar_usuario(int(usuario_id))
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        else:
+            # Si no encontró usuario -> 404, si es por regla de negocio -> 400
+            if response.get('error') and 'no encontrado' in response.get('error').lower():
+                return Response(response, status=status.HTTP_404_NOT_FOUND)
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({
+            'error': 'Error interno del servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

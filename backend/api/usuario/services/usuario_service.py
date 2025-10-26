@@ -134,3 +134,39 @@ class UsuarioService:
                 'error': 'Error interno del servidor',
                 'details': str(e)
             }
+
+    def desactivar_usuario(self, usuario_id: int) -> Tuple[bool, Dict]:
+        """
+        Desactiva el usuario indicado.
+        Restricciones:
+         - No permite desactivar el último usuario activo del sistema.
+         - El controller debe verificar que el token pertenezca al mismo usuario que se intenta desactivar.
+        Returns: (success: bool, response: dict)
+        """
+        try:
+            usuario = self.obtener_usuario_por_id(usuario_id)
+            if not usuario:
+                return False, {'error': 'Usuario no encontrado'}
+
+            # Contar usuarios activos
+            activos_count = Usuario.objects.filter(es_activo=True).count()
+            if activos_count <= 1:
+                return False, {
+                    'error': 'No se puede desactivar el último usuario activo. Designe otro usuario activo antes de desactivar esta cuenta.'
+                }
+
+            # Desactivación lógica
+            usuario.es_activo = False
+            usuario.save()
+
+            usuario_serializer = UsuarioResponseSerializer(usuario)
+            return True, {
+                'message': 'Usuario desactivado correctamente',
+                'user': usuario_serializer.data
+            }
+
+        except Exception as e:
+            return False, {
+                'error': 'Error interno del servidor',
+                'details': str(e)
+            }
