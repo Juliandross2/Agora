@@ -131,3 +131,28 @@ def buscar_pensums(request):
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@extend_schema(tags=['Pensum - Público'], summary="Obtener estadísticas detalladas del pensum")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_estadisticas_pensum(request, pensum_id):
+    try:
+        success, response = pensum_controller.service.obtener_estadisticas_pensum(pensum_id)
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(tags=['Pensum - Público'], summary="Obtener resumen de créditos por programa")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_resumen_creditos(request, programa_id):
+    try:
+        success, response = pensum_controller.service.obtener_resumen_creditos_por_programa(programa_id)
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
