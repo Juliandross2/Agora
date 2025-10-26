@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from api.programa.services.programa_service import ProgramaService
 import json
+from drf_spectacular.utils import extend_schema
 
 class ProgramaController:
     """Controller para manejar las peticiones HTTP relacionadas con Programa"""
@@ -14,6 +15,7 @@ class ProgramaController:
 # Instancia global del controller
 programa_controller = ProgramaController()
 
+@extend_schema(tags=['Programa - Público'], summary="Listar todos los programas")
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_programas(request):
@@ -35,6 +37,7 @@ def listar_programas(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Público'], summary="Obtener programa por ID")
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_programa(request, programa_id):
@@ -56,6 +59,7 @@ def obtener_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Admin'], summary="Crear nuevo programa")
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def crear_programa(request):
@@ -87,6 +91,7 @@ def crear_programa(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Admin'], summary="Actualizar programa existente")
 @api_view(['PUT'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def actualizar_programa(request, programa_id):
@@ -118,6 +123,7 @@ def actualizar_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Admin'], summary="Eliminar programa")
 @api_view(['DELETE'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def eliminar_programa(request, programa_id):
@@ -139,6 +145,7 @@ def eliminar_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Público'], summary="Listar solo programas activos")
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_programas_activos(request):
@@ -160,6 +167,7 @@ def listar_programas_activos(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Público'], summary="Buscar programas por nombre")
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def buscar_programas(request):
@@ -190,11 +198,12 @@ def buscar_programas(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@extend_schema(tags=['Programa - Público'], summary="Endpoint de prueba para verificar conexión de la api")
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def test_programa_connection(request):
     """
-    Endpoint de prueba para verificar conexión del módulo Programa
+    Endpoint de prueba para verificar conexión de la api
     """
     return Response({
         'message': 'API Programa funcionando correctamente',

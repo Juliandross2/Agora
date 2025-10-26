@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from api.oferta_electiva.controllers.controller_oferta_electiva import actualizar_oferta, crear_oferta, eliminar_oferta, listar_ofertas_activas, obtener_oferta
+from api.pensum.controllers.controller_pensum import actualizar_pensum, eliminar_pensum, listar_pensums_activos, crear_pensum, buscar_pensums
 from api.usuario.controllers.controller_usuario import login, register, profile, test_connection
 from api.programa.controllers.controller_programa import (
     listar_programas, obtener_programa, crear_programa, actualizar_programa,
@@ -47,4 +49,19 @@ urlpatterns = [
     path('api/programa/activos/', listar_programas_activos, name='programa_active_list'),
     path('api/programa/buscar/', buscar_programas, name='programa_search'),
     path('api/programa/test/', test_programa_connection, name='programa_test'),
-]
+    
+    # oferta electiva
+    path('api/oferta-electiva/', listar_ofertas_activas, name='oferta_electiva_list'),
+    path('api/oferta-electiva/<int:oferta_id>/', obtener_oferta, name='oferta_electiva_detail'),
+    path('api/oferta-electiva/crear/', crear_oferta, name='oferta_electiva_create'),
+    path('api/oferta-electiva/<int:oferta_id>/actualizar/', actualizar_oferta, name='oferta_electiva_update'),
+    path('api/oferta-electiva/<int:oferta_id>/eliminar/', eliminar_oferta, name='oferta_electiva_delete'),
+    
+    # pensum
+    path('api/pensum/', listar_pensums_activos, name='pensum_list'),
+    path('api/pensum/buscar/', buscar_pensums, name='pensum_search'),
+    path('api/pensum/crear/', crear_pensum, name='pensum_create'),
+    path('api/pensum/<int:pensum_id>/actualizar/', actualizar_pensum, name='pensum_update'),
+    path('api/pensum/<int:pensum_id>/eliminar/', eliminar_pensum, name='pensum_delete'),
+    
+]   
