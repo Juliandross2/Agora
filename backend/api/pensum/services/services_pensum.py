@@ -1,5 +1,5 @@
 from api.pensum.repositories.repository_pensum import PensumRepository
-from api.pensum.serializers.serializer_pensum import PensumSerializer
+from api.pensum.serializers.serializer_pensum import PensumSerializer, PensumDetailSerializer
 from api.programa.models.programa import Programa
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -16,10 +16,27 @@ class PensumService:
         obj = self.repo.get_by_id(pensum_id)
         if not obj:
             return False, {'error': 'Pensum no encontrado'}
-        return True, PensumSerializer(obj).data
+        return True, PensumDetailSerializer(obj).data
+
+    def obtener_estadisticas_pensum(self, pensum_id):
+        """Obtiene estadísticas detalladas del pensum"""
+        obj = self.repo.get_by_id(pensum_id)
+        if not obj:
+            return False, {'error': 'Pensum no encontrado'}
+        
+        estadisticas = {
+            'pensum_id': obj.pensum_id,
+            'programa_nombre': obj.programa_id.nombre_programa if obj.programa_id else 'N/A',
+            'anio_creacion': obj.anio_creacion,
+            'creditos_obligatorios_totales': obj.creditos_obligatorios_totales,
+            'total_materias_obligatorias': obj.total_materias_obligatorias,
+            'total_materias_electivas': obj.total_materias_electivas,
+            'total_materias': obj.total_materias_obligatorias + obj.total_materias_electivas,
+            'es_activo': obj.es_activo
+        }
+        return True, estadisticas
 
     def crear_pensum(self, data):
-        # data expected validated by serializer in controller, but validate again defensively
         try:
             programa_id = int(data.get('programa_id'))
             programa = Programa.objects.get(pk=programa_id)
@@ -30,7 +47,7 @@ class PensumService:
         es_activo = data.get('es_activo', True)
 
         pensum = self.repo.create(programa, anio_creacion=anio, es_activo=es_activo)
-        return True, PensumSerializer(pensum).data
+        return True, PensumDetailSerializer(pensum).data
 
     def actualizar_pensum(self, pensum_id, data):
         pensum = self.repo.get_by_id(pensum_id)
@@ -50,7 +67,7 @@ class PensumService:
             update_fields['es_activo'] = data.get('es_activo')
 
         pensum = self.repo.update(pensum, **update_fields)
-        return True, PensumSerializer(pensum).data
+        return True, PensumDetailSerializer(pensum).data
 
     def eliminar_pensum(self, pensum_id):
         pensum = self.repo.get_by_id(pensum_id)
@@ -72,3 +89,25 @@ class PensumService:
         objs = self.repo.filter_by_programa(programa_id)
         data = PensumSerializer(objs, many=True).data
         return True, data
+
+    def obtener_resumen_creditos_por_programa(self, programa_id):
+        """Obtiene un resumen de créditos de todos los pensums de un programa"""
+        try:
+            int(programa_id)
+        except (TypeError, ValueError):
+            return False, {'error': 'programa_id inválido'}
+            
+        pensums = self.repo.filter_by_programa(programa_id)
+        resumen = []
+        
+        for pensum in pensums:
+            resumen.append({
+                'pensum_id': pensum.pensum_id,
+                'anio_creacion': pensum.anio_creacion,
+                'creditos_obligatorios': pensum.creditos_obligatorios_totales,
+                'materias_obligatorias': pensum.total_materias_obligatorias,
+                'materias_electivas': pensum.total_materias_electivas,
+                'es_activo': pensum.es_activo
+            })
+        
+        return True, resumen
