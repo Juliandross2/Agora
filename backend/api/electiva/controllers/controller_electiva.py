@@ -2,29 +2,29 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from api.programa.services.programa_service import ProgramaService
+from api.electiva.services.electiva_service import ElectivaService
 import json
 from drf_spectacular.utils import extend_schema
 
-class ProgramaController:
-    """Controller para manejar las peticiones HTTP relacionadas con Programa"""
+class ElectivaController:
+    """Controller para manejar las peticiones HTTP relacionadas con Electiva"""
     
     def __init__(self):
-        self.service = ProgramaService()
+        self.service = ElectivaService()
 
 # Instancia global del controller
-programa_controller = ProgramaController()
+electiva_controller = ElectivaController()
 
-@extend_schema(tags=['Programa - Público'], summary="Listar todos los programas")
+@extend_schema(tags=['Electiva - Público'], summary="Listar todas las electivas")
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def listar_programas(request):
+def listar_electivas(request):
     """
-    Listar todos los programas
+    Listar todas las electivas
     """
     try:
-        # Llamar al servicio para obtener programas
-        success, response = programa_controller.service.obtener_todos_programas()
+        # Llamar al servicio para obtener electivas
+        success, response = electiva_controller.service.obtener_todas_electivas()
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -37,16 +37,16 @@ def listar_programas(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Público'], summary="Obtener programa por ID")
+@extend_schema(tags=['Electiva - Público'], summary="Obtener electiva por ID")
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def obtener_programa(request, programa_id):
+def obtener_electiva(request, electiva_id):
     """
-    Obtener programa por ID
+    Obtener electiva por ID
     """
     try:
-        # Llamar al servicio para obtener programa
-        success, response = programa_controller.service.obtener_programa_por_id(programa_id)
+        # Llamar al servicio para obtener electiva
+        success, response = electiva_controller.service.obtener_electiva_por_id(electiva_id)
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -59,12 +59,19 @@ def obtener_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Admin'], summary="Crear nuevo programa")
+@extend_schema(tags=['Electiva - Admin'], summary="Crear nueva electiva")
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def crear_programa(request):
+@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+def crear_electiva(request):
     """
-    Crear nuevo programa
+    Crear nueva electiva
+    
+    Campos requeridos:
+    - programa_id: ID del programa al que pertenece la electiva
+    - nombre_electiva: Nombre de la electiva
+    
+    Campos opcionales:
+    - es_activa: True si está activa, False si está inactiva (default: True)
     """
     try:
         # Obtener datos del request
@@ -73,8 +80,8 @@ def crear_programa(request):
         else:
             data = request.data
         
-        # Llamar al servicio para crear programa
-        success, response = programa_controller.service.crear_programa(data)
+        # Llamar al servicio para crear electiva
+        success, response = electiva_controller.service.crear_electiva(data)
         
         if success:
             return Response(response, status=status.HTTP_201_CREATED)
@@ -91,12 +98,17 @@ def crear_programa(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Admin'], summary="Actualizar programa existente")
+@extend_schema(tags=['Electiva - Admin'], summary="Actualizar electiva existente")
 @api_view(['PUT'])
-@permission_classes([AllowAny])  
-def actualizar_programa(request, programa_id):
+@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+def actualizar_electiva(request, electiva_id):
     """
-    Actualizar programa existente
+    Actualizar electiva existente
+    
+    Todos los campos son opcionales, enviar solo los que se desean actualizar:
+    - programa_id: ID del programa al que pertenece la electiva
+    - nombre_electiva: Nombre de la electiva
+    - es_activa: True si está activa, False si está inactiva
     """
     try:
         # Obtener datos del request
@@ -105,8 +117,8 @@ def actualizar_programa(request, programa_id):
         else:
             data = request.data
         
-        # Llamar al servicio para actualizar programa
-        success, response = programa_controller.service.actualizar_programa(programa_id, data)
+        # Llamar al servicio para actualizar electiva
+        success, response = electiva_controller.service.actualizar_electiva(electiva_id, data)
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -123,16 +135,16 @@ def actualizar_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Admin'], summary="Eliminar programa")
+@extend_schema(tags=['Electiva - Admin'], summary="Eliminar electiva")
 @api_view(['DELETE'])
-@permission_classes([AllowAny])
-def eliminar_programa(request, programa_id):
+@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+def eliminar_electiva(request, electiva_id):
     """
-    Eliminar programa
+    Eliminar electiva (soft delete - marca es_activa como False)
     """
     try:
-        # Llamar al servicio para eliminar programa
-        success, response = programa_controller.service.eliminar_programa(programa_id)
+        # Llamar al servicio para eliminar electiva
+        success, response = electiva_controller.service.eliminar_electiva(electiva_id)
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -145,16 +157,16 @@ def eliminar_programa(request, programa_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Público'], summary="Listar solo programas activos")
+@extend_schema(tags=['Electiva - Público'], summary="Listar solo electivas activas")
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def listar_programas_activos(request):
+def listar_electivas_activas(request):
     """
-    Listar solo programas activos
+    Listar solo electivas activas
     """
     try:
-        # Llamar al servicio para obtener programas activos
-        success, response = programa_controller.service.obtener_programas_activos()
+        # Llamar al servicio para obtener electivas activas
+        success, response = electiva_controller.service.obtener_electivas_activas()
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -167,12 +179,34 @@ def listar_programas_activos(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Público'], summary="Buscar programas por nombre")
+@extend_schema(tags=['Electiva - Público'], summary="Obtener electivas por programa")
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def buscar_programas(request):
+def obtener_electivas_por_programa(request, programa_id):
     """
-    Buscar programas por nombre
+    Obtener todas las electivas de un programa específico
+    """
+    try:
+        # Llamar al servicio para obtener electivas por programa
+        success, response = electiva_controller.service.obtener_electivas_por_programa(programa_id)
+        
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        else:
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        return Response({
+            'error': 'Error interno del servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(tags=['Electiva - Público'], summary="Buscar electivas por nombre")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def buscar_electivas(request):
+    """
+    Buscar electivas por nombre
     Query parameter: ?nombre=<nombre_a_buscar>
     """
     try:
@@ -184,8 +218,8 @@ def buscar_programas(request):
                 'error': 'Parámetro "nombre" requerido para la búsqueda'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Llamar al servicio para buscar programas
-        success, response = programa_controller.service.buscar_programas_por_nombre(nombre)
+        # Llamar al servicio para buscar electivas
+        success, response = electiva_controller.service.buscar_electivas_por_nombre(nombre)
         
         if success:
             return Response(response, status=status.HTTP_200_OK)
@@ -198,24 +232,26 @@ def buscar_programas(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Programa - Público'], summary="Endpoint de prueba para verificar conexión de la api")
+@extend_schema(tags=['Electiva - Público'], summary="Endpoint de prueba para verificar conexión de la api")
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def test_programa_connection(request):
+def test_electiva_connection(request):
     """
     Endpoint de prueba para verificar conexión de la api
     """
     return Response({
-        'message': 'API Programa funcionando correctamente',
+        'message': 'API Electiva funcionando correctamente',
         'status': 'OK',
         'endpoints': [
-            'GET /api/programa/ - Listar todos los programas',
-            'GET /api/programa/{id}/ - Obtener programa por ID',
-            'POST /api/programa/ - Crear programa',
-            'PUT /api/programa/{id}/ - Actualizar programa',
-            'DELETE /api/programa/{id}/ - Eliminar programa',
-            'GET /api/programa/activos/ - Listar programas activos',
-            'GET /api/programa/buscar/?nombre=<nombre> - Buscar programas',
-            'GET /api/programa/test/ - Test de conexión'
+            'GET /api/electiva/ - Listar todas las electivas',
+            'GET /api/electiva/{id}/ - Obtener electiva por ID',
+            'POST /api/electiva/crear/ - Crear electiva',
+            'PUT /api/electiva/{id}/actualizar/ - Actualizar electiva',
+            'DELETE /api/electiva/{id}/eliminar/ - Eliminar electiva',
+            'GET /api/electiva/activas/ - Listar electivas activas',
+            'GET /api/electiva/programa/{programa_id}/ - Obtener electivas por programa',
+            'GET /api/electiva/buscar/?nombre=<nombre> - Buscar electivas',
+            'GET /api/electiva/test/ - Test de conexión'
         ]
     }, status=status.HTTP_200_OK)
+

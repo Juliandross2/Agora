@@ -33,7 +33,17 @@ from api.programa.controllers.controller_programa import (
     listar_programas, obtener_programa, crear_programa, actualizar_programa,
     eliminar_programa, listar_programas_activos, buscar_programas, test_programa_connection
 )
-
+from api.materia.controllers.controller_materia import (
+    listar_materias, obtener_materia, crear_materia, actualizar_materia,
+    eliminar_materia, listar_materias_activas, obtener_materias_por_pensum,
+    obtener_materias_por_semestre, buscar_materias, listar_materias_obligatorias,
+    test_materia_connection
+)
+from api.electiva.controllers.controller_electiva import (
+    listar_electivas, obtener_electiva, crear_electiva, actualizar_electiva,
+    eliminar_electiva, listar_electivas_activas, obtener_electivas_por_programa,
+    buscar_electivas, test_electiva_connection
+)
 urlpatterns = [
     path('admin/', admin.site.urls),
 
@@ -76,4 +86,28 @@ urlpatterns = [
     path('api/pensum/<int:pensum_id>/eliminar/', eliminar_pensum, name='pensum_delete'),
     path('api/pensum/<int:pensum_id>/estadisticas/', obtener_estadisticas_pensum, name='pensum_estadisticas'),
     path('api/pensum/resumen-credito/<int:programa_id>/', obtener_resumen_creditos, name='pensum_resumen_creditos'),
+    
+    # materia
+    path('api/materia/', listar_materias, name='materia_list'),
+    path('api/materia/<int:materia_id>/', obtener_materia, name='materia_detail'),
+    path('api/materia/crear/', crear_materia, name='materia_create'),
+    path('api/materia/<int:materia_id>/actualizar/', actualizar_materia, name='materia_update'),
+    path('api/materia/<int:materia_id>/eliminar/', eliminar_materia, name='materia_delete'),
+    path('api/materia/activas/', listar_materias_activas, name='materia_active_list'),
+    path('api/materia/pensum/<int:pensum_id>/', obtener_materias_por_pensum, name='materia_by_pensum'),
+    path('api/materia/semestre/<int:semestre>/', obtener_materias_por_semestre, name='materia_by_semestre'),
+    path('api/materia/buscar/', buscar_materias, name='materia_search'),
+    path('api/materia/obligatorias/', listar_materias_obligatorias, name='materia_obligatorias'),
+    path('api/materia/test/', test_materia_connection, name='materia_test'),
+    
+    # electiva
+    path('api/electiva/', listar_electivas, name='electiva_list'),
+    path('api/electiva/<int:electiva_id>/', obtener_electiva, name='electiva_detail'),
+    path('api/electiva/crear/', crear_electiva, name='electiva_create'),
+    path('api/electiva/<int:electiva_id>/actualizar/', actualizar_electiva, name='electiva_update'),
+    path('api/electiva/<int:electiva_id>/eliminar/', eliminar_electiva, name='electiva_delete'),
+    path('api/electiva/activas/', listar_electivas_activas, name='electiva_active_list'),
+    path('api/electiva/programa/<int:programa_id>/', obtener_electivas_por_programa, name='electiva_by_programa'),
+    path('api/electiva/buscar/', buscar_electivas, name='electiva_search'),
+    path('api/electiva/test/', test_electiva_connection, name='electiva_test'),
 ]
