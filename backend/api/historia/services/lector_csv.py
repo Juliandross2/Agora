@@ -1,24 +1,13 @@
 import pandas as pd
+import os
 
-class LectorCSV:
-    """
-    Clase que encapsula la lectura y conversión del archivo CSV.
-    Sirve como interfaz entre los datos y la API.
-    """
-
-    def __init__(self, ruta_archivo: str):
-        self.ruta_archivo = ruta_archivo
-
-    def leer_datos(self):
-        """
-        Lee el CSV y devuelve los datos como una lista de diccionarios.
-        """
-        try:
-            df = pd.read_csv(self.ruta_archivo, encoding='latin1', sep=',')
-            datos = df.to_dict(orient='records')
-
-            # Puedes dividir la info en secciones si quieres más adelante
-            # Por ejemplo: por periodo o semestre
-            return datos
-        except Exception as e:
-            return {"error": f"No se pudo leer el archivo: {str(e)}"}
+def leer_historias(carpeta_csv):
+    historias = []
+    for archivo in os.listdir(carpeta_csv):
+        if archivo.endswith('.csv'):
+            ruta = os.path.join(carpeta_csv, archivo)
+            df = pd.read_csv(ruta, encoding='latin1', sep=',')
+            df.columns = df.columns.str.strip().str.lower()
+            df['archivo'] = archivo  # mantener referencia
+            historias.append(df)
+    return historias
