@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Users, Settings, ArrowLeft, User, LogOut, HomeIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // <-- agregado
 import { getProfile } from '../services/consumers/UsuarioClient';
 import { clearToken } from '../services/consumers/Auth'; // <-- import agregado
 import type { User as Usuario } from '../services/domain/UsuarioModels';
@@ -14,6 +15,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, isCollapsed, onToggle }) => {
   const [profile, setProfile] = useState<Usuario | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const navigate = useNavigate(); // <-- agregado
 
   useEffect(() => {
     let mounted = true;
@@ -118,7 +120,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, isCo
         </button>
         
         <button
-          onClick={() => setActiveSection('comparacion')}
+          onClick={() => {
+            setActiveSection('comparacion');
+            navigate('/comparacion');
+          }}
           className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
             activeSection === 'comparacion' ? 'bg-blue-700' : 'hover:bg-blue-700'
           }`}
@@ -128,7 +133,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, isCo
         </button>
 
         <button
-          onClick={() => setActiveSection('configuracion')}
+          onClick={() => {
+            setActiveSection('configuracion');
+            navigate('/config'); // navegar a la ruta de configuración
+          }}
           className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
             activeSection === 'configuracion' ? 'bg-blue-700' : 'hover:bg-blue-700'
           }`}
