@@ -81,7 +81,7 @@ export interface RegisterResponse {
 
 /** Registra un nuevo usuario (admin) */
 export const registerUser = async (payload: RegisterRequest): Promise<RegisterResponse> => {
-  const token = getToken(); // asume que se requiere estar autenticado para crear otro admin
+  const token = getToken();
   if (!token) {
     throw new Error('No access token available');
   }
@@ -98,9 +98,79 @@ export const registerUser = async (payload: RegisterRequest): Promise<RegisterRe
   const data = await res.json();
 
   if (!res.ok) {
+    // Si hay errores de validación específicos, preservar la estructura
+    if (data?.details) {
+      const error = new Error(data.error || 'Error de validación');
+      (error as any).details = data.details;
+      (error as any).error = data.error;
+      throw error;
+    }
+
     const msg = data?.error || data?.detail || 'Error registrando usuario';
     throw new Error(msg);
   }
 
   return data as RegisterResponse;
+};
+
+/** Lista todos los usuarios (GET /api/usuario-listar/) */
+export const listarUsuarios = async (): Promise<User[]> => {
+  const token = getToken();
+  if (!token) {
+    throw new Error('No access token available');
+  }
+
+  const res = await fetch(`http://localhost:8000/api/usuario-listar/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    const msg = data?.error || data?.detail || 'Error listando usuarios';
+    throw new Error(msg);
+  }
+
+  // backend devuelve array de usuarios
+  return data as User[];
+};
+
+// --- NUEVO: activar usuario ---
+export interface ActivateResponse {
+  message: string;
+  user: User;
+}
+
+/** Activa un usuario inactivo
+ *  POST {{BASE_URL}}/<usuario_id>/activar/
+ *  Respuestas:
+ *   { "error": "Usuario ya está activo" }
+ *   { "message": "Usuario activado correctamente", "user": { ... } }
+ */
+export const activarUsuario = async (usuario_id: number): Promise<ActivateResponse> => {
+  const token = getToken();
+  if (!token) {
+    throw new Error('No access token available');
+  }
+
+  const res = await fetch(`${BASE_URL}/${usuario_id}/activar/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    const msg = data?.error || data?.detail || 'Error activando usuario';
+    throw new Error(msg);
+  }
+
+  return data as ActivateResponse;
 };

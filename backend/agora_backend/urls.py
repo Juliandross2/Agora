@@ -27,7 +27,7 @@ from api.pensum.controllers.controller_pensum import (
     obtener_estadisticas_pensum, obtener_resumen_creditos
 )
 from api.usuario.controllers.controller_usuario import (
-    desactivar_mi_cuenta, login, register, profile, test_connection
+    desactivar_mi_cuenta, listar_usuarios, listar_usuarios_activos, listar_usuarios_inactivos, login, register, profile, test_connection, activar_usuario
 )
 from api.programa.controllers.controller_programa import (
     listar_programas, obtener_programa, crear_programa, actualizar_programa,
@@ -58,6 +58,10 @@ urlpatterns = [
     path('api/usuario/profile/', profile, name='usuario_profile'),
     path('api/usuario/test/', test_connection, name='usuario_test'),
     path('api/usuario/desactivar/', desactivar_mi_cuenta, name='usuario_desactivar'),
+    path('api/usuario/<int:usuario_id>/activar/', activar_usuario, name='usuario_activar'),
+    path('api/usuario-listar/', listar_usuarios, name='usuario_list_all'),
+    path('api/usuario-listar/activos/', listar_usuarios_activos, name='usuario_list_activos'),
+    path('api/usuario-listar/inactivos/', listar_usuarios_inactivos, name='usuario_list_inactivos'),
 
     # programa
     path('api/programa/', listar_programas, name='programa_list'),
