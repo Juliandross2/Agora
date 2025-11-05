@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../DashboardLayout';
 
 export default function ComparacionPensum() {
   const [text, setText] = useState<string>('');
   const [files, setFiles] = useState<FileList | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files;
@@ -17,9 +19,11 @@ export default function ComparacionPensum() {
   const handleEvaluate = async () => {
     setEvaluating(true);
     try {
-      // placeholder: aquí podrías enviar `text` o archivos al backend
-      await new Promise((r) => setTimeout(r, 800));
-      alert('Evaluación completada (simulada)');
+      // Simulación del proceso de evaluación
+      await new Promise((r) => setTimeout(r, 2000));
+      
+      // Redirigir a la página de resultados
+      navigate('/comparacion-resultados');
     } finally {
       setEvaluating(false);
     }
