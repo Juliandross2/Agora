@@ -15,11 +15,12 @@ class UsuarioController:
 
 # Instancia global del controller
 usuario_controller = UsuarioController()
+
 @extend_schema(
     request=UsuarioRegisterSerializer,
     responses={
         201: OpenApiResponse(response=UsuarioResponseSerializer, description="Usuario creado"),
-        400: OpenApiResponse(description="Campos inválidos")
+        400: OpenApiResponse(description="Errores de validación — devuelve 'error' y 'details' por campo")
     },
     examples=[
         OpenApiExample(
@@ -31,6 +32,37 @@ usuario_controller = UsuarioController()
                 "confirmar_contrasenia": "MiPassword123!"
             },
             media_type="application/json"
+        ),
+        OpenApiExample(
+            "RegisterErrorExample_400_fields",
+            value={
+                "error": "Datos inválidos",
+                "details": {
+                    "email_usuario": "Enter a valid email address.",
+                    "contrasenia": "This password is too common."
+                }
+            },
+            media_type="application/json"
+        ),
+        OpenApiExample(
+            "RegisterErrorExample_400_password_mismatch",
+            value={
+                "error": "Contraseñas no coinciden",
+                "details": {
+                    "confirmar_contrasenia": "La contraseña y su confirmación deben ser iguales."
+                }
+            },
+            media_type="application/json"
+        ),
+        OpenApiExample(
+            "RegisterErrorExample_400_uniqueness",
+            value={
+                "error": "Email ya registrado",
+                "details": {
+                    "email_usuario": "Ya existe una cuenta con este correo."
+                }
+            },
+            media_type="application/json"
         )
     ],
     tags=['usuario']
@@ -39,6 +71,10 @@ usuario_controller = UsuarioController()
 def register(request):
     """
     Registrar un nuevo usuario
+
+    Respuestas de error documentadas:
+     - 400 : devuelve { error: <mensaje>, details: { <campo>: <mensaje> } }
+       ejemplos: contraseñas no coinciden, email ya registrado, validación de campos.
     """
     try:
         # Obtener datos del request
@@ -53,7 +89,8 @@ def register(request):
         
         if missing_fields:
             return Response({
-                'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
+                'error': 'Campos requeridos faltantes',
+                'details': {f: 'Campo requerido' for f in missing_fields}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Llamar al servicio para registrar usuario
@@ -73,7 +110,7 @@ def register(request):
             'error': 'Error interno del servidor',
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
 @extend_schema(
     request=UsuarioLoginSerializer,
     responses={
@@ -247,3 +284,69 @@ def desactivar_mi_cuenta(request):
             'error': 'Error interno del servidor',
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(tags=['usuario - Admin'], summary="Listar todos los usuarios")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_usuarios(request):
+    """
+    Listar todos los usuarios (requiere autenticación)
+    """
+    try:
+        success, response = usuario_controller.service.listar_usuarios()
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(tags=['usuario - Admin'], summary="Listar usuarios activos")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_usuarios_activos(request):
+    """
+    Listar solo usuarios activos (requiere autenticación)
+    """
+    try:
+        success, response = usuario_controller.service.listar_usuarios_activos()
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(tags=['usuario - Admin'], summary="Listar usuarios inactivos")
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_usuarios_inactivos(request):
+    """
+    Listar solo usuarios inactivos (requiere autenticación)
+    """
+    try:
+        success, response = usuario_controller.service.listar_usuarios_inactivos()
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@extend_schema(tags=['usuario - Admin'], summary="Activar usuario por ID")
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def activar_usuario(request, usuario_id):
+    """
+    Activar un usuario desactivado (requiere autenticación — idealmente admin).
+    """
+    try:
+        success, response = usuario_controller.service.activar_usuario(int(usuario_id))
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+
+        # Mapear errores
+        if response.get('error') and 'no encontrado' in response.get('error').lower():
+            return Response(response, status=status.HTTP_404_NOT_FOUND)
+        return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({'error': 'Error interno del servidor', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
