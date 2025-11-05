@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Config from './pages/Config';
 import Comparacion from './pages/Comparacion';
+import ComparacionList from './pages/ComparacionList';
+import ComparacionDetailView from './pages/ComparacionDetailView';
 import { getToken } from './services/consumers/Auth';
 
 const RequireAuth = ({ children }) => {
@@ -34,7 +36,8 @@ export default function App() {
 
         {/* comparacion protegido */}
         <Route path="/comparacion" element={<RequireAuth><Comparacion /></RequireAuth>} />
-
+        <Route path="/comparacion-resultados" element={<RequireAuth><ComparacionList /></RequireAuth>} />
+        <Route path="/comparacion-detalle/:estudianteId" element={<RequireAuth><ComparacionDetailView /></RequireAuth>} />
         {/* rutas adicionales protegidas pueden usar RequireAuth */}
       </Routes>
     </BrowserRouter>

@@ -22,7 +22,7 @@ export default function Login() {
     };
 
     try {
-      await authLogin(payload); // authLogin guarda el access token
+      await authLogin(payload);
       navigate('/home');
     } catch (err: any) {
       setError(err?.message || 'Error en login');
@@ -32,10 +32,27 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-900">
-      {/* Contenedor centrado que alinea header y tarjeta de login */}
-      <div className="w-full flex flex-col items-center px-6">
-        {/* Header centrado sobre la tarjeta (alineado con la tarjeta por max-w-sm) */}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700">
+      {/* Ondas animadas */}
+      <div className="absolute inset-0">
+        <svg className="absolute bottom-0 left-0 w-full h-full" viewBox="0 0 1200 800" preserveAspectRatio="none">
+          <path
+            d="M0,400 C300,350 600,450 900,400 C1050,375 1200,400 1200,400 L1200,800 L0,800 Z"
+            fill="rgba(255,255,255,0.03)"
+            className="animate-pulse"
+          />
+          <path
+            d="M0,450 C300,400 600,500 900,450 C1050,425 1200,450 1200,450 L1200,800 L0,800 Z"
+            fill="rgba(255,255,255,0.02)"
+            className="animate-pulse"
+            style={{ animationDelay: '1s' }}
+          />
+        </svg>
+      </div>
+
+      {/* Contenedor centrado */}
+      <div className="w-full flex flex-col items-center px-6 relative z-10">
+        {/* Header */}
         <header className="w-full max-w-lg flex items-center gap-4 justify-center mt-6">
           <img src="/unicauca_logo.svg" alt="Universidad del Cauca" className="h-24" />
           <div className="h-10 border-l border-white/30 pl-4 flex items-center text-white font-semibold text-lg">
@@ -43,9 +60,9 @@ export default function Login() {
           </div>
         </header>
 
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 mt-8">
+        {/* Tarjeta de login */}
+        <div className="w-full max-w-sm bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 mt-8">
           <div className="flex flex-col items-center mb-6">
-            {/* Logo / header */}
             <div className="w-40 h-40 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <img src="/agora_logo.svg" alt="Agora" className="w-40 h-40" />
             </div>
