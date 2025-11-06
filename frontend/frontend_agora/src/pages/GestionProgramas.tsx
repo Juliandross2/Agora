@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import { useSnackbar } from 'notistack';
 import { ArrowLeft, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -16,6 +16,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function GestionProgramas() {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
   const [programs, setPrograms] = useState<Programa[]>([]);
   const [allPrograms, setAllPrograms] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,8 +49,11 @@ export default function GestionProgramas() {
       setAllPrograms(Array.isArray(res.programas) ? res.programas : []);
       setPrograms(Array.isArray(res.programas) ? res.programas : []);
       setCurrentPage(1);
+      enqueueSnackbar('Programas cargados', { variant: 'success' });
     } catch (err: any) {
-      setError(err?.message || 'Error al cargar programas');
+      const msg = err?.message || 'Error al cargar programas';
+      setError(msg);
+      enqueueSnackbar(msg, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -67,9 +71,12 @@ export default function GestionProgramas() {
     try {
       const res = await buscarProgramas(query);
       setPrograms(Array.isArray(res.programas) ? res.programas : []);
+      enqueueSnackbar(`${res.programas?.length ?? 0} resultados para "${query}"`, { variant: 'info' });
     } catch (err: any) {
+      const msg = err?.message || 'Error al buscar programas';
       console.error('Error searching:', err);
       setPrograms([]);
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
@@ -87,9 +94,23 @@ export default function GestionProgramas() {
 
   const handleFormSubmit = async (data: { nombre_programa: string; programa_id?: number }) => {
     if (formMode === 'create') {
-      await crearPrograma({ nombre_programa: data.nombre_programa });
+      try {
+        await crearPrograma({ nombre_programa: data.nombre_programa });
+        enqueueSnackbar('Programa creado correctamente', { variant: 'success' });
+      } catch (err: any) {
+        const msg = err?.message || 'Error al crear el programa';
+        enqueueSnackbar(msg, { variant: 'error' });
+        throw err;
+      }
     } else if (data.programa_id) {
-      await actualizarPrograma(data.programa_id, { nombre_programa: data.nombre_programa });
+      try {
+        await actualizarPrograma(data.programa_id, { nombre_programa: data.nombre_programa });
+        enqueueSnackbar('Programa actualizado correctamente', { variant: 'success' });
+      } catch (err: any) {
+        const msg = err?.message || 'Error al actualizar el programa';
+        enqueueSnackbar(msg, { variant: 'error' });
+        throw err;
+      }
     }
     await loadProgramas();
   };
@@ -107,8 +128,10 @@ export default function GestionProgramas() {
       await loadProgramas();
       setIsDeleteDialogOpen(false);
       setProgramaToDelete(null);
+      enqueueSnackbar('Programa eliminado correctamente', { variant: 'success' });
     } catch (err: any) {
-      alert(err?.message || 'Error al eliminar el programa');
+      const msg = err?.message || 'Error al eliminar el programa';
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
