@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import type { Programa } from "../services/domain/ProgramaModels";
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import type { Programa } from '../services/domain/ProgramaModels';
 
 interface ProgramaFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (
-    programa: Omit<Programa, "programa_id"> | Programa
-  ) => Promise<void>;
+  onSubmit: (programa: { nombre_programa: string; programa_id?: number }) => Promise<void>;
   programa?: Programa | null;
-  mode: "create" | "edit";
+  mode: 'create' | 'edit';
 }
 
 const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
@@ -17,25 +15,22 @@ const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
   onClose,
   onSubmit,
   programa,
-  mode,
+  mode
 }) => {
   const [formData, setFormData] = useState({
-    nombre_programa: "",
-    es_activo: true,
+    nombre_programa: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (programa && mode === "edit") {
+    if (programa && mode === 'edit') {
       setFormData({
-        nombre_programa: programa.nombre_programa,
-        es_activo: programa.es_activo,
+        nombre_programa: programa.nombre_programa
       });
     } else {
       setFormData({
-        nombre_programa: "",
-        es_activo: true,
+        nombre_programa: ''
       });
     }
     setError(null);
@@ -47,14 +42,14 @@ const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
     setLoading(true);
 
     try {
-      if (mode === "edit" && programa) {
+      if (mode === 'edit' && programa) {
         await onSubmit({ ...formData, programa_id: programa.programa_id });
       } else {
         await onSubmit(formData);
       }
       onClose();
     } catch (err: any) {
-      setError(err.message || "Error al guardar el programa");
+      setError(err.message || 'Error al guardar el programa');
     } finally {
       setLoading(false);
     }
@@ -67,7 +62,7 @@ const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">
-            {mode === "create" ? "+ Agregar Programa" : "Editar Programa"}
+            {mode === 'create' ? '+ Agregar Programa' : 'Editar Programa'}
           </h2>
           <button
             onClick={onClose}
@@ -92,33 +87,16 @@ const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
             <input
               type="text"
               value={formData.nombre_programa}
-              onChange={(e) =>
-                setFormData({ ...formData, nombre_programa: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setFormData({ ...formData, nombre_programa: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
               placeholder="Ej: Ingeniería de Sistemas"
               required
               disabled={loading}
+              maxLength={100}
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="es_activo"
-              checked={formData.es_activo}
-              onChange={(e) =>
-                setFormData({ ...formData, es_activo: e.target.checked })
-              }
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              disabled={loading}
-            />
-            <label
-              htmlFor="es_activo"
-              className="text-sm font-medium text-gray-700"
-            >
-              Programa activo
-            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              Máximo 100 caracteres
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -135,11 +113,7 @@ const ProgramaFormDialog: React.FC<ProgramaFormDialogProps> = ({
               className="flex-1 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition disabled:opacity-50"
               disabled={loading}
             >
-              {loading
-                ? "Guardando..."
-                : mode === "create"
-                ? "Crear"
-                : "Guardar"}
+              {loading ? 'Guardando...' : (mode === 'create' ? 'Crear' : 'Guardar')}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '../DashboardLayout';
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { 
   listarProgramas, 
@@ -11,6 +11,7 @@ import {
 } from '../services/consumers/ProgramaClient';
 import type { Programa } from '../services/domain/ProgramaModels';
 import ProgramaFormDialog from '../components/ProgramaFormDialog';
+import ProgramaDetailDialog from '../components/ProgramaDetailDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function GestionProgramas() {
@@ -25,8 +26,12 @@ export default function GestionProgramas() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedPrograma, setSelectedPrograma] = useState<Programa | null>(null);
 
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedProgramaId, setSelectedProgramaId] = useState<number | null>(null);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [programaToDelete, setProgramaToDelete] = useState<Programa | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
@@ -80,11 +85,11 @@ export default function GestionProgramas() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (data: Omit<Programa, 'programa_id'> | Programa) => {
+  const handleFormSubmit = async (data: { nombre_programa: string; programa_id?: number }) => {
     if (formMode === 'create') {
-      await crearPrograma(data as Omit<Programa, 'programa_id'>);
-    } else if ('programa_id' in data) {
-      await actualizarPrograma(data.programa_id, data);
+      await crearPrograma({ nombre_programa: data.nombre_programa });
+    } else if (data.programa_id) {
+      await actualizarPrograma(data.programa_id, { nombre_programa: data.nombre_programa });
     }
     await loadProgramas();
   };
