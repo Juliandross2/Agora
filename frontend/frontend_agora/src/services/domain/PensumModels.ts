@@ -36,3 +36,17 @@ export interface MateriasPensumResponse {
   materias: Materia[];
   total: number;
 }
+
+// Estadísticas de un pensum
+export interface PensumEstadisticas {
+  pensum_id: number;
+  programa_id: number;
+  programa_nombre: string;
+  anio_creacion: number;
+  creditos_obligatorios_totales: number;
+  total_materias_obligatorias: number;
+  total_materias_electivas: number;
+  total_creditos_electivas: number;
+  total_materias: number;
+  es_activo: boolean;
+}

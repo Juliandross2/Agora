@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useActiveSection } from '../DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import { listarProgramas } from '../services/consumers/ProgramaClient';
+import { obtenerPensumActual, obtenerEstadisticasPensum } from '../services/consumers/PensumClient';
 import type { Programa } from '../services/domain/ProgramaModels';
+import type { PensumEstadisticas } from '../services/domain/PensumModels';
 
 export default function AgoraDashboard() {
   const { setActiveSection } = useActiveSection();
@@ -16,6 +18,14 @@ export default function AgoraDashboard() {
   // pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
+
+  // pensum stats cache: programId -> PensumEstadisticas | null (null = no pensum activo)
+  const [pensumStats, setPensumStats] = useState<Record<number, PensumEstadisticas | null>>({});
+  const [loadingPensum, setLoadingPensum] = useState<Record<number, boolean>>({});
+
+  // refs para controlar solicitudes ya hechas / en progreso
+  const fetchedRef = useRef<Set<number>>(new Set());
+  const fetchingRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -49,6 +59,53 @@ export default function AgoraDashboard() {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Fetch pensum actual + estadisticas for visible programs (cached)
+  useEffect(() => {
+    let mounted = true;
+
+    displayedPrograms.forEach((program) => {
+      const pid = program.programa_id;
+
+      // si ya se obtuvo o ya está en curso, saltar
+      if (fetchedRef.current.has(pid) || fetchingRef.current.has(pid)) return;
+
+      fetchingRef.current.add(pid);
+      setLoadingPensum((s) => ({ ...s, [pid]: true }));
+
+      (async () => {
+        try {
+          // obtenerPensumActual devuelve pensum_actual = null si no hay pensum (no lanza)
+          const res = await obtenerPensumActual(pid).catch(() => null as any);
+
+          if (!mounted) return;
+
+          if (!res || !res.pensum_actual) {
+            // no hay pensum activo
+            setPensumStats((s) => ({ ...s, [pid]: null }));
+          } else {
+            try {
+              const stats = await obtenerEstadisticasPensum(res.pensum_actual.pensum_id);
+              if (!mounted) return;
+              setPensumStats((s) => ({ ...s, [pid]: stats }));
+            } catch (err) {
+              // fallo al obtener estadísticas: marcar como no disponible
+              setPensumStats((s) => ({ ...s, [pid]: null }));
+            }
+          }
+        } catch (err) {
+          // cualquier otro error -> marcar como no disponible
+          setPensumStats((s) => ({ ...s, [pid]: null }));
+        } finally {
+          fetchingRef.current.delete(pid);
+          fetchedRef.current.add(pid);
+          if (mounted) setLoadingPensum((s) => ({ ...s, [pid]: false }));
+        }
+      })();
+    });
+
+    return () => { mounted = false; };
+  }, [displayedPrograms]);
 
   return (
     <>
@@ -85,26 +142,54 @@ export default function AgoraDashboard() {
           {!loading && !error && programs.length > 0 && (
             <>
               <div className="space-y-4">
-                {displayedPrograms.map((program) => (
-                  <div
-                    key={program.programa_id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/pensum/${program.programa_id}`)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/pensum/${program.programa_id}`); }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
-                  >
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                        {String(program.nombre_programa).slice(0,2).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-1">{program.nombre_programa}</h3>
-                        <p className="text-gray-600">0 Créditos Totales</p>
+                {displayedPrograms.map((program) => {
+                  const stats = pensumStats[program.programa_id];
+                  const isLoadingPensum = !!loadingPensum[program.programa_id];
+
+                  return (
+                    <div
+                      key={program.programa_id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/pensum/${program.programa_id}`)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/pensum/${program.programa_id}`); }}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {String(program.nombre_programa).slice(0,2).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-1">{program.nombre_programa}</h3>
+
+                          {isLoadingPensum && <p className="text-sm text-gray-500">Cargando pensum...</p>}
+
+                          {!isLoadingPensum && stats && (
+                            <p className="text-sm text-gray-600">
+                              Pensum {stats.anio_creacion} • {stats.creditos_obligatorios_totales} créditos obligatorios • {stats.total_materias} materias
+                            </p>
+                          )}
+
+                          {!isLoadingPensum && stats === null && (
+                            <div className="flex items-center gap-3">
+                              <p className="text-sm text-red-600">No tiene pensum activo</p>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate('/gestion-programas'); }}
+                                className="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition"
+                              >
+                                Añadir pensum
+                              </button>
+                            </div>
+                          )}
+
+                          {!isLoadingPensum && stats === undefined && (
+                            <p className="text-sm text-gray-500">Sin información de pensum</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                 ))}
+                  );
+                })}
               </div>
 
               <div className="mt-6 flex items-center justify-between">

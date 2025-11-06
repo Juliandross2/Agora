@@ -9,6 +9,8 @@ import {
   actualizarPrograma, 
   eliminarPrograma 
 } from '../services/consumers/ProgramaClient';
+import { obtenerEstadisticasPensum } from '../services/consumers/PensumClient';
+import type { PensumEstadisticas } from '../services/domain/PensumModels';
 import type { Programa } from '../services/domain/ProgramaModels';
 import ProgramaFormDialog from '../components/ProgramaFormDialog';
 import ProgramaDetailDialog from '../components/ProgramaDetailDialog';
@@ -22,6 +24,9 @@ export default function GestionProgramas() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // pensum stats cache: programa_id -> PensumEstadisticas | null
+  const [pensumStats, setPensumStats] = useState<Record<number, PensumEstadisticas | null>>({});
+  const [loadingPensum, setLoadingPensum] = useState<Record<number, boolean>>({});
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -33,9 +38,19 @@ export default function GestionProgramas() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [programaToDelete, setProgramaToDelete] = useState<Programa | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // refs to avoid refetching
+  const fetchedRef = React.useRef<Set<number>>(new Set());
+  const fetchingRef = React.useRef<Set<number>>(new Set());
 
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
+
+  // moved up: totalPages y displayedPrograms deben estar antes del useEffect que las consume
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(programs.length / PAGE_SIZE)), [programs.length, PAGE_SIZE]);
+  const displayedPrograms = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return programs.slice(start, start + PAGE_SIZE);
+  }, [programs, currentPage, PAGE_SIZE]);
 
   useEffect(() => {
     loadProgramas();
@@ -49,6 +64,10 @@ export default function GestionProgramas() {
       setAllPrograms(Array.isArray(res.programas) ? res.programas : []);
       setPrograms(Array.isArray(res.programas) ? res.programas : []);
       setCurrentPage(1);
+      // reset pensum caches so new list will trigger re-fetch
+      setPensumStats({});
+      fetchedRef.current.clear();
+      fetchingRef.current.clear();
       enqueueSnackbar('Programas cargados', { variant: 'success' });
     } catch (err: any) {
       const msg = err?.message || 'Error al cargar programas';
@@ -79,6 +98,46 @@ export default function GestionProgramas() {
       enqueueSnackbar(msg, { variant: 'error' });
     }
   };
+
+  // Fetch pensum statistics for visible programs (uses programa.pensum_activo_id)
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFor = async (program: Programa) => {
+      const pid = program.programa_id;
+      // skip if already fetched or in progress
+      if (fetchedRef.current.has(pid) || fetchingRef.current.has(pid)) return;
+
+      fetchingRef.current.add(pid);
+      setLoadingPensum((s) => ({ ...s, [pid]: true }));
+
+      try {
+        const pensumId = (program as any).pensum_activo_id ?? null;
+        if (!pensumId) {
+          // mark explicitly as no pensum
+          if (!mounted) return;
+          setPensumStats((s) => ({ ...s, [pid]: null }));
+        } else {
+          try {
+            const stats = await obtenerEstadisticasPensum(pensumId);
+            if (!mounted) return;
+            setPensumStats((s) => ({ ...s, [pid]: stats }));
+          } catch (err) {
+            if (!mounted) return;
+            setPensumStats((s) => ({ ...s, [pid]: null }));
+          }
+        }
+      } finally {
+        fetchingRef.current.delete(pid);
+        fetchedRef.current.add(pid);
+        if (mounted) setLoadingPensum((s) => ({ ...s, [pid]: false }));
+      }
+    };
+
+    displayedPrograms.forEach((p) => fetchFor(p));
+
+    return () => { mounted = false; };
+  }, [displayedPrograms]);
 
   const handleCreate = () => {
     setFormMode('create');
@@ -139,19 +198,11 @@ export default function GestionProgramas() {
     navigate(`/pensum/${programa.programa_id}`);
   };
 
-  const totalPages = Math.max(1, Math.ceil(programs.length / PAGE_SIZE));
-
-  const displayedPrograms = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return programs.slice(start, start + PAGE_SIZE);
-  }, [programs, currentPage]);
-
   const goToPage = (p: number) => {
     const page = Math.min(Math.max(1, p), totalPages);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   return (
         <div className="min-h-screen bg-gray-50">
           <div className="bg-white border-b border-gray-200 px-8 py-6">
@@ -224,18 +275,34 @@ export default function GestionProgramas() {
                         <div>
                           <div className="font-medium text-gray-900">{program.nombre_programa}</div>
                           <div className="text-sm text-gray-500">
-                            {/* Placeholder para créditos totales */}
-                            0 Créditos Totales
+                            {loadingPensum[program.programa_id] ? (
+                              'Cargando pensum...'
+                            ) : pensumStats[program.programa_id] ? (
+                              `${pensumStats[program.programa_id]!.creditos_obligatorios_totales} Créditos obligatorios • ${pensumStats[program.programa_id]!.total_materias} materias`
+                            ) : (
+                              'No tiene pensum activo'
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <button 
-                          onClick={() => handleVerPensum(program)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-                        >
-                          Ver
-                        </button>
+                        {loadingPensum[program.programa_id] ? (
+                          <span className="text-sm text-gray-500">Cargando...</span>
+                        ) : pensumStats[program.programa_id] ? (
+                          <button 
+                            onClick={() => handleVerPensum(program)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                          >
+                            Ver
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/pensum/crear?programa_id=${program.programa_id}`); }}
+                            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium"
+                          >
+                            Añadir pensum
+                          </button>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
