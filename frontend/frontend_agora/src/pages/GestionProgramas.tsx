@@ -135,6 +135,10 @@ export default function GestionProgramas() {
     }
   };
 
+  const handleVerPensum = (programa: Programa) => {
+    navigate(`/pensum/${programa.programa_id}`);
+  };
+
   const totalPages = Math.max(1, Math.ceil(programs.length / PAGE_SIZE));
 
   const displayedPrograms = useMemo(() => {
@@ -226,7 +230,10 @@ export default function GestionProgramas() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">
+                        <button 
+                          onClick={() => handleVerPensum(program)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                        >
                           Ver
                         </button>
                       </td>

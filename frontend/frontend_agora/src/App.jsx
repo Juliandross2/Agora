@@ -8,6 +8,7 @@ import Comparacion from './pages/Comparacion';
 import ComparacionList from './pages/ComparacionList';
 import ComparacionDetailView from './pages/ComparacionDetailView';
 import GestionProgramas from './pages/GestionProgramas';
+import PensumActual from './pages/PensumActual';
 import { getToken, isTokenValid } from './services/consumers/Auth';
 
 const RequireAuth = ({ children }) => {
@@ -47,7 +48,8 @@ export default function App() {
 
           {/* gestión de programas protegido */}
           <Route path="/gestion-programas" element={<RequireAuth><GestionProgramas /></RequireAuth>} />
-
+          {/* Pensum actual de programa **/}
+          <Route path="/pensum/:programaId" element={<PensumActual />} />
           {/* comparacion protegido */}
           <Route path="/comparacion" element={<RequireAuth><Comparacion /></RequireAuth>} />
           <Route path="/comparacion-resultados" element={<RequireAuth><ComparacionList /></RequireAuth>} />
