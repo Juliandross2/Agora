@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useActiveSection } from '../DashboardLayout';
+import { useNavigate } from 'react-router-dom';
 import { listarProgramas } from '../services/consumers/ProgramaClient';
 import type { Programa } from '../services/domain/ProgramaModels';
 
 export default function AgoraDashboard() {
   const { setActiveSection } = useActiveSection();
+  const navigate = useNavigate();
   useEffect(() => { setActiveSection('home'); }, [setActiveSection]);
 
   const [programs, setPrograms] = useState<Programa[]>([]);
@@ -84,7 +86,14 @@ export default function AgoraDashboard() {
             <>
               <div className="space-y-4">
                 {displayedPrograms.map((program) => (
-                  <div key={program.programa_id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+                  <div
+                    key={program.programa_id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/pensum/${program.programa_id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/pensum/${program.programa_id}`); }}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition cursor-pointer"
+                  >
                     <div className="flex items-center gap-6">
                       <div className="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
                         {String(program.nombre_programa).slice(0,2).toUpperCase()}
@@ -95,7 +104,7 @@ export default function AgoraDashboard() {
                       </div>
                     </div>
                   </div>
-                ))}
+                 ))}
               </div>
 
               <div className="mt-6 flex items-center justify-between">
