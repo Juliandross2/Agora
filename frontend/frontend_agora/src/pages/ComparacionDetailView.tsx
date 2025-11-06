@@ -80,8 +80,6 @@ export default function ComparacionDetailView() {
 
   if (!estudiante) {
     return (
-      <DashboardLayout>
-        {() => (
           <div className="p-8 text-center">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">
               Estudiante no encontrado
@@ -96,8 +94,6 @@ export default function ComparacionDetailView() {
               Volver a resultados
             </button>
           </div>
-        )}
-      </DashboardLayout>
     );
   }
 
@@ -129,8 +125,6 @@ export default function ComparacionDetailView() {
   };
 
   return (
-    <DashboardLayout>
-      {() => (
         <div className="min-h-full bg-gray-50">
           {/* Header azul oscuro */}
           <div className="bg-blue-900 text-white py-6">
@@ -276,7 +270,5 @@ export default function ComparacionDetailView() {
             </div>
           </div>
         </div>
-      )}
-    </DashboardLayout>
   );
 }

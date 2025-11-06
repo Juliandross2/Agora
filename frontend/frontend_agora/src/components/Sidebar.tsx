@@ -130,7 +130,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <nav className="flex-1 p-3 space-y-2">
         <button
-          onClick={() => setActiveSection("home")}
+          onClick={() => {
+            setActiveSection("home");
+            navigate('/home');
+          }}
           className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
             activeSection === "home" ? "bg-blue-700" : "hover:bg-blue-700"
           }`}
@@ -148,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => {
             setActiveSection("programas");
-            navigate("/programas");
+            navigate("/gestion-programas");
           }}
           className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
             activeSection === "programas" ? "bg-blue-700" : "hover:bg-blue-700"

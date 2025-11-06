@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
 import { UserPlus } from 'lucide-react';
-import DashboardLayout from '../DashboardLayout';
 import { getProfile, desactivarUsuario, listarUsuarios, activarUsuario } from '../services/consumers/UsuarioClient';
 import { clearToken } from '../services/consumers/Auth';
 import type { User } from '../services/domain/UsuarioModels';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RegisterFormDialog from '../components/RegisterFormDialog';
+import { useActiveSection } from '../DashboardLayout';
 
 export default function Config() {
+  const { setActiveSection } = useActiveSection();
+  useEffect(() => { setActiveSection('configuracion'); }, [setActiveSection]);
+
   const { enqueueSnackbar } = useSnackbar();
   const [profile, setProfile] = useState<User | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -71,7 +74,7 @@ export default function Config() {
     };
     loadUsers();
     return () => { mounted = false; };
-  }, []);
+  }, [enqueueSnackbar]);
 
   // abrir diálogo en lugar de window.confirm (propia cuenta)
   const handleDeactivate = async () => {
@@ -144,133 +147,129 @@ export default function Config() {
   };
 
   return (
-    <DashboardLayout>
-      {(activeSection) => (
-        <div className="p-8 space-y-6">
-          <div className="bg-white rounded-xl p-6 shadow border">
-            <h2 className="text-xl font-semibold mb-2">Configuración de cuenta</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Información de la cuenta actual.
-            </p>
+    <div className="p-8 space-y-6">
+      <div className="bg-white rounded-xl p-6 shadow border">
+        <h2 className="text-xl font-semibold mb-2">Configuración de cuenta</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Información de la cuenta actual.
+        </p>
 
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="text-lg font-medium">
-                  {loadingProfile ? 'Cargando...' : (profile?.nombre_usuario ?? 'Sin nombre')}
-                </div>
-                <div className="text-sm text-gray-500">{profile?.email_usuario ?? ''}</div>
-                <div className="text-sm text-gray-400 mt-2">
-                  Estado: {profile?.es_activo ? <span className="text-green-600">Activo</span> : <span className="text-red-600">Inactivo</span>}
-                </div>
-              </div>
-
-              <div>
-                <button
-                  onClick={handleDeactivate}
-                  disabled={deactLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
-                >
-                  {deactLoading ? 'Desactivando...' : 'Desactivar mi cuenta'}
-                </button>
-              </div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="text-lg font-medium">
+              {loadingProfile ? 'Cargando...' : (profile?.nombre_usuario ?? 'Sin nombre')}
+            </div>
+            <div className="text-sm text-gray-500">{profile?.email_usuario ?? ''}</div>
+            <div className="text-sm text-gray-400 mt-2">
+              Estado: {profile?.es_activo ? <span className="text-green-600">Activo</span> : <span className="text-red-600">Inactivo</span>}
             </div>
           </div>
 
-          {/* Lista de usuarios */}
-          <div className="bg-white rounded-xl p-6 shadow border">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-semibold">Usuarios</h2>
-                <p className="text-sm text-gray-500">{users.length} en total</p>
-              </div>
-              <button
-                onClick={() => setShowRegisterDialog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition"
-              >
-                <UserPlus className="w-4 h-4" />
-                Agregar Usuario
-              </button>
-            </div>
+          <div>
+            <button
+              onClick={handleDeactivate}
+              disabled={deactLoading}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
+            >
+              {deactLoading ? 'Desactivando...' : 'Desactivar mi cuenta'}
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {usersLoading && <div className="text-center text-gray-600">Cargando usuarios...</div>}
-            {usersError && <div className="text-center text-red-600">{usersError}</div>}
+      {/* Lista de usuarios */}
+      <div className="bg-white rounded-xl p-6 shadow border">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Usuarios</h2>
+            <p className="text-sm text-gray-500">{users.length} en total</p>
+          </div>
+          <button
+            onClick={() => setShowRegisterDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            Agregar Usuario
+          </button>
+        </div>
 
-            {!usersLoading && !usersError && (
-              <div className="space-y-3">
-                {users.map((u) => (
-                  <div key={u.usuario_id} className="flex items-center gap-4 p-3 border rounded-lg hover:shadow-sm transition">
-                    <div className="w-12 h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-semibold">
-                      {String(u.nombre_usuario).split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()}
+        {usersLoading && <div className="text-center text-gray-600">Cargando usuarios...</div>}
+        {usersError && <div className="text-center text-red-600">{usersError}</div>}
+
+        {!usersLoading && !usersError && (
+          <div className="space-y-3">
+            {users.map((u) => (
+              <div key={u.usuario_id} className="flex items-center gap-4 p-3 border rounded-lg hover:shadow-sm transition">
+                <div className="w-12 h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-semibold">
+                  {String(u.nombre_usuario).split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div className="truncate">
+                      <div className="text-sm font-medium text-gray-800">{u.nombre_usuario}</div>
+                      <div className="text-xs text-gray-500 truncate">{u.email_usuario}</div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="truncate">
-                          <div className="text-sm font-medium text-gray-800">{u.nombre_usuario}</div>
-                          <div className="text-xs text-gray-500 truncate">{u.email_usuario}</div>
-                        </div>
-                        <div className="ml-4 text-right">
-                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${u.es_activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {u.es_activo ? 'Activo' : 'Inactivo'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-2 flex items-center gap-2">
-                        {/* Si está inactivo permitir activarlo */}
-                        {!u.es_activo ? (
-                          <button
-                            onClick={() => handleActivateUser(u)}
-                            disabled={actUserLoading}
-                            className="px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                          >
-                            {actUserLoading ? 'Procesando...' : 'Activar'}
-                          </button>
-                        ) : (
-                          <div className="text-xs text-gray-500"></div>
-                        )}
-
-                        {/* nota si es tu cuenta */}
-                        {profile && profile.usuario_id === u.usuario_id && (
-                          <div className="text-xs text-gray-500"> (es tu cuenta)</div>
-                        )}
+                    <div className="ml-4 text-right">
+                      <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${u.es_activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {u.es_activo ? 'Activo' : 'Inactivo'}
                       </div>
                     </div>
                   </div>
-                ))}
+
+                  <div className="mt-2 flex items-center gap-2">
+                    {/* Si está inactivo permitir activarlo */}
+                    {!u.es_activo ? (
+                      <button
+                        onClick={() => handleActivateUser(u)}
+                        disabled={actUserLoading}
+                        className="px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                      >
+                        {actUserLoading ? 'Procesando...' : 'Activar'}
+                      </button>
+                    ) : (
+                      <div className="text-xs text-gray-500"></div>
+                    )}
+
+                    {/* nota si es tu cuenta */}
+                    {profile && profile.usuario_id === u.usuario_id && (
+                      <div className="text-xs text-gray-500"> (es tu cuenta)</div>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
+        )}
+      </div>
 
-          {/* Dialogs */}
-          <ConfirmDialog
-            isOpen={showConfirmDeactivate}
-            title="Desactivar cuenta"
-            description="¿Confirmas desactivar tu cuenta? Esto cerrará tu sesión inmediatamente."
-            confirmLabel="Desactivar"
-            cancelLabel="Cancelar"
-            loading={deactLoading}
-            onConfirm={onConfirmDeactivate}
-            onCancel={() => setShowConfirmDeactivate(false)}
-          />
+      {/* Dialogs */}
+      <ConfirmDialog
+        isOpen={showConfirmDeactivate}
+        title="Desactivar cuenta"
+        description="¿Confirmas desactivar tu cuenta? Esto cerrará tu sesión inmediatamente."
+        confirmLabel="Desactivar"
+        cancelLabel="Cancelar"
+        loading={deactLoading}
+        onConfirm={onConfirmDeactivate}
+        onCancel={() => setShowConfirmDeactivate(false)}
+      />
 
-          <ConfirmDialog
-            isOpen={showConfirmDeactivateUser}
-            title="Desactivar usuario"
-            description={selectedUserToDeactivate ? `Desactivar a ${selectedUserToDeactivate.nombre_usuario}?` : 'Desactivar usuario?'}
-            confirmLabel="Desactivar"
-            cancelLabel="Cancelar"
-            loading={deactUserLoading}
-            onConfirm={onConfirmDeactivateUser}
-            onCancel={() => { setShowConfirmDeactivateUser(false); setSelectedUserToDeactivate(null); }}
-          />
+      <ConfirmDialog
+        isOpen={showConfirmDeactivateUser}
+        title="Desactivar usuario"
+        description={selectedUserToDeactivate ? `Desactivar a ${selectedUserToDeactivate.nombre_usuario}?` : 'Desactivar usuario?'}
+        confirmLabel="Desactivar"
+        cancelLabel="Cancelar"
+        loading={deactUserLoading}
+        onConfirm={onConfirmDeactivateUser}
+        onCancel={() => { setShowConfirmDeactivateUser(false); setSelectedUserToDeactivate(null); }}
+      />
 
-          <RegisterFormDialog
-            isOpen={showRegisterDialog}
-            onClose={() => setShowRegisterDialog(false)}
-            onUserRegistered={handleUserRegistered}
-          />
-        </div>
-      )}
-    </DashboardLayout>
+      <RegisterFormDialog
+        isOpen={showRegisterDialog}
+        onClose={() => setShowRegisterDialog(false)}
+        onUserRegistered={handleUserRegistered}
+      />
+    </div>
   );
 }

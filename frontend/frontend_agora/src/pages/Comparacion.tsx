@@ -35,8 +35,6 @@ export default function ComparacionPensum() {
   };
 
   return (
-    <DashboardLayout>
-      {() => (
         <div className="min-h-full min-w-full">
           {/* Top blue header */}
           <div className="bg-blue-900 text-white py-6">
@@ -87,7 +85,5 @@ export default function ComparacionPensum() {
             </div>
           </div>
         </div>
-      )}
-    </DashboardLayout>
   );
 }
