@@ -34,6 +34,9 @@ export default function App() {
         {/* config protegido */}
         <Route path="/config" element={<RequireAuth><Config /></RequireAuth>} />
 
+        {/* gestión de programas protegido */}
+        <Route path="/gestion-programas" element={<RequireAuth><GestionProgramas /></RequireAuth>} />
+
         {/* comparacion protegido */}
         <Route path="/comparacion" element={<RequireAuth><Comparacion /></RequireAuth>} />
         <Route path="/comparacion-resultados" element={<RequireAuth><ComparacionList /></RequireAuth>} />
