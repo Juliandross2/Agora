@@ -13,7 +13,6 @@ import { obtenerEstadisticasPensum, crearPensum } from '../services/consumers/Pe
 import type { PensumEstadisticas } from '../services/domain/PensumModels';
 import type { Programa } from '../services/domain/ProgramaModels';
 import ProgramaFormDialog from '../components/ProgramaFormDialog';
-import ProgramaDetailDialog from '../components/ProgramaDetailDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function GestionProgramas() {
@@ -145,6 +144,14 @@ export default function GestionProgramas() {
     setIsFormOpen(true);
   };
 
+  // Navegar a gestión de electivas. Si se pasa programaId se filtra por ese programa.
+  const handleGestionElectivas = (programaId?: number) => {
+    if (typeof programaId === 'number') {
+      navigate(`/gestion-electivas?programaId=${programaId}`);
+    } else {
+      navigate('/gestion-electivas');
+    }
+  };
   const handleEdit = (programa: Programa) => {
     setFormMode('edit');
     setSelectedPrograma(programa);
@@ -268,12 +275,14 @@ export default function GestionProgramas() {
                 onChange={(e) => handleSearch(e.target.value)}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                onClick={handleCreate}
-                className="px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition font-medium"
-              >
-                + Agregar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreate}
+                  className="px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition font-medium"
+                >
+                  + Agregar
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -345,6 +354,14 @@ export default function GestionProgramas() {
                             {loadingPensum[program.programa_id] ? 'Creando...' : 'Añadir pensum'}
                           </button>
                         )}
+                        { /* Botón por-programa para ir a la gestión de electivas de ese programa */ }
+                        <button
+                          onClick={() => handleGestionElectivas(program.programa_id)}
+                          className="ml-3 px-3 py-2 bg-white border border-blue-900 text-blue-900 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
+                          title={`Ver electivas de ${program.nombre_programa}`}
+                        >
+                          Electivas
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-2">
