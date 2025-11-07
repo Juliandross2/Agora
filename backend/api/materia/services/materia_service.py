@@ -93,7 +93,7 @@ class MateriaService:
                 'details': str(e)
             }
     
-    def actualizar_materia(self, materia_id: int, data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    def actualizar_materia(self, materia_id: int, data: Dict[str, Any], partial: bool = False) -> Tuple[bool, Dict[str, Any]]:
         """Actualizar materia existente"""
         try:
             if not materia_id or materia_id <= 0:
@@ -102,7 +102,8 @@ class MateriaService:
                 }
             
             # Validar datos con serializer
-            serializer = MateriaUpdateSerializer(data=data)
+            # usar partial=True para patch (validación parcial)
+            serializer = MateriaUpdateSerializer(data=data, partial=partial)
             if not serializer.is_valid():
                 return False, {
                     'error': 'Datos inválidos',
@@ -309,5 +310,5 @@ class MateriaService:
                 'error': 'Error interno al obtener materias obligatorias',
                 'details': str(e)
             }
-    
+
 

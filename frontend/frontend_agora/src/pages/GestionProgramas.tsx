@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import DashboardLayout from '../DashboardLayout';
+import { useSnackbar } from 'notistack';
 import { ArrowLeft, Edit2, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,18 +9,23 @@ import {
   actualizarPrograma, 
   eliminarPrograma 
 } from '../services/consumers/ProgramaClient';
+import { obtenerEstadisticasPensum, crearPensum } from '../services/consumers/PensumClient';
+import type { PensumEstadisticas } from '../services/domain/PensumModels';
 import type { Programa } from '../services/domain/ProgramaModels';
 import ProgramaFormDialog from '../components/ProgramaFormDialog';
-import ProgramaDetailDialog from '../components/ProgramaDetailDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function GestionProgramas() {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
   const [programs, setPrograms] = useState<Programa[]>([]);
   const [allPrograms, setAllPrograms] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // pensum stats cache: programa_id -> PensumEstadisticas | null
+  const [pensumStats, setPensumStats] = useState<Record<number, PensumEstadisticas | null>>({});
+  const [loadingPensum, setLoadingPensum] = useState<Record<number, boolean>>({});
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -32,9 +37,19 @@ export default function GestionProgramas() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [programaToDelete, setProgramaToDelete] = useState<Programa | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // refs to avoid refetching
+  const fetchedRef = React.useRef<Set<number>>(new Set());
+  const fetchingRef = React.useRef<Set<number>>(new Set());
 
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
+
+  // moved up: totalPages y displayedPrograms deben estar antes del useEffect que las consume
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(programs.length / PAGE_SIZE)), [programs.length, PAGE_SIZE]);
+  const displayedPrograms = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return programs.slice(start, start + PAGE_SIZE);
+  }, [programs, currentPage, PAGE_SIZE]);
 
   useEffect(() => {
     loadProgramas();
@@ -48,8 +63,15 @@ export default function GestionProgramas() {
       setAllPrograms(Array.isArray(res.programas) ? res.programas : []);
       setPrograms(Array.isArray(res.programas) ? res.programas : []);
       setCurrentPage(1);
+      // reset pensum caches so new list will trigger re-fetch
+      setPensumStats({});
+      fetchedRef.current.clear();
+      fetchingRef.current.clear();
+      enqueueSnackbar('Programas cargados', { variant: 'success' });
     } catch (err: any) {
-      setError(err?.message || 'Error al cargar programas');
+      const msg = err?.message || 'Error al cargar programas';
+      setError(msg);
+      enqueueSnackbar(msg, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -67,11 +89,54 @@ export default function GestionProgramas() {
     try {
       const res = await buscarProgramas(query);
       setPrograms(Array.isArray(res.programas) ? res.programas : []);
+      enqueueSnackbar(`${res.programas?.length ?? 0} resultados para "${query}"`, { variant: 'info' });
     } catch (err: any) {
+      const msg = err?.message || 'Error al buscar programas';
       console.error('Error searching:', err);
       setPrograms([]);
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
+
+  // Fetch pensum statistics for visible programs (uses programa.pensum_activo_id)
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFor = async (program: Programa) => {
+      const pid = program.programa_id;
+      // skip if already fetched or in progress
+      if (fetchedRef.current.has(pid) || fetchingRef.current.has(pid)) return;
+
+      fetchingRef.current.add(pid);
+      setLoadingPensum((s) => ({ ...s, [pid]: true }));
+
+      try {
+        const pensumId = (program as any).pensum_activo_id ?? null;
+        if (!pensumId) {
+          // mark explicitly as no pensum
+          if (!mounted) return;
+          setPensumStats((s) => ({ ...s, [pid]: null }));
+        } else {
+          try {
+            const stats = await obtenerEstadisticasPensum(pensumId);
+            if (!mounted) return;
+            setPensumStats((s) => ({ ...s, [pid]: stats }));
+          } catch (err) {
+            if (!mounted) return;
+            setPensumStats((s) => ({ ...s, [pid]: null }));
+          }
+        }
+      } finally {
+        fetchingRef.current.delete(pid);
+        fetchedRef.current.add(pid);
+        if (mounted) setLoadingPensum((s) => ({ ...s, [pid]: false }));
+      }
+    };
+
+    displayedPrograms.forEach((p) => fetchFor(p));
+
+    return () => { mounted = false; };
+  }, [displayedPrograms]);
 
   const handleCreate = () => {
     setFormMode('create');
@@ -79,6 +144,15 @@ export default function GestionProgramas() {
     setIsFormOpen(true);
   };
 
+  // Navegar a gestión de electivas. Si se pasa programaId se filtra por ese programa.
+  const handleGestionElectivas = (programaId?: number) => {
+    if (typeof programaId === 'number') {
+      console.log("Navegando hacia gestion electivas con programaID", programaId);
+      navigate(`/gestion-electivas?programaId=${programaId}`);
+    } else {
+      navigate('/gestion-electivas');
+    }
+  };
   const handleEdit = (programa: Programa) => {
     setFormMode('edit');
     setSelectedPrograma(programa);
@@ -87,9 +161,23 @@ export default function GestionProgramas() {
 
   const handleFormSubmit = async (data: { nombre_programa: string; programa_id?: number }) => {
     if (formMode === 'create') {
-      await crearPrograma({ nombre_programa: data.nombre_programa });
+      try {
+        await crearPrograma({ nombre_programa: data.nombre_programa });
+        enqueueSnackbar('Programa creado correctamente', { variant: 'success' });
+      } catch (err: any) {
+        const msg = err?.message || 'Error al crear el programa';
+        enqueueSnackbar(msg, { variant: 'error' });
+        throw err;
+      }
     } else if (data.programa_id) {
-      await actualizarPrograma(data.programa_id, { nombre_programa: data.nombre_programa });
+      try {
+        await actualizarPrograma(data.programa_id, { nombre_programa: data.nombre_programa });
+        enqueueSnackbar('Programa actualizado correctamente', { variant: 'success' });
+      } catch (err: any) {
+        const msg = err?.message || 'Error al actualizar el programa';
+        enqueueSnackbar(msg, { variant: 'error' });
+        throw err;
+      }
     }
     await loadProgramas();
   };
@@ -107,27 +195,64 @@ export default function GestionProgramas() {
       await loadProgramas();
       setIsDeleteDialogOpen(false);
       setProgramaToDelete(null);
+      enqueueSnackbar('Programa eliminado correctamente', { variant: 'success' });
     } catch (err: any) {
-      alert(err?.message || 'Error al eliminar el programa');
+      const msg = err?.message || 'Error al eliminar el programa';
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(programs.length / PAGE_SIZE));
+  const handleVerPensum = (programa: Programa) => {
+    navigate(`/pensum/${programa.programa_id}`);
+  };
 
-  const displayedPrograms = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return programs.slice(start, start + PAGE_SIZE);
-  }, [programs, currentPage]);
+  // Crea un pensum automáticamente (sin UI adicional) y redirige a la vista del pensum creado.
+  const handleAutoCrearPensum = async (programa: Programa, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const pid = programa.programa_id;
+    // evitar duplicate clicks
+    if (loadingPensum[pid]) return;
+
+    setLoadingPensum((s) => ({ ...s, [pid]: true }));
+
+    try {
+      const payload = {
+        programa_id: pid,
+        anio_creacion: new Date().getFullYear(),
+        es_activo: true,
+      };
+
+      const res = await crearPensum(payload);
+      enqueueSnackbar(res.message || 'Pensum creado correctamente', { variant: 'success' });
+
+      // intentar obtener estadísticas del pensum recién creado para actualizar UI
+      try {
+        const stats = await obtenerEstadisticasPensum(res.pensum.pensum_id);
+        setPensumStats((s) => ({ ...s, [pid]: stats }));
+      } catch {
+        setPensumStats((s) => ({ ...s, [pid]: null }));
+      }
+
+      // refrescar lista de programas para que el backend devuelva pensum_activo_id actualizado
+      await loadProgramas();
+
+      // redirigir a la vista del pensum actual del programa
+      navigate(`/pensum/${pid}`);
+    } catch (err: any) {
+      const msg = err?.message || 'Error al crear pensum';
+      enqueueSnackbar(msg, { variant: 'error' });
+    } finally {
+      setLoadingPensum((s) => ({ ...s, [pid]: false }));
+      fetchedRef.current.add(pid);
+    }
+  };
 
   const goToPage = (p: number) => {
     const page = Math.min(Math.max(1, p), totalPages);
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   return (
-    <DashboardLayout>
-      {() => (
         <div className="min-h-screen bg-gray-50">
           <div className="bg-white border-b border-gray-200 px-8 py-6">
             <div className="flex items-center gap-4 mb-4">
@@ -151,12 +276,14 @@ export default function GestionProgramas() {
                 onChange={(e) => handleSearch(e.target.value)}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                onClick={handleCreate}
-                className="px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition font-medium"
-              >
-                + Agregar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreate}
+                  className="px-6 py-3 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition font-medium"
+                >
+                  + Agregar
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -199,14 +326,42 @@ export default function GestionProgramas() {
                         <div>
                           <div className="font-medium text-gray-900">{program.nombre_programa}</div>
                           <div className="text-sm text-gray-500">
-                            {/* Placeholder para créditos totales */}
-                            0 Créditos Totales
+                            {loadingPensum[program.programa_id] ? (
+                              'Cargando pensum...'
+                            ) : pensumStats[program.programa_id] ? (
+                              `${pensumStats[program.programa_id]!.creditos_obligatorios_totales} Créditos obligatorios • ${pensumStats[program.programa_id]!.total_materias} materias`
+                            ) : (
+                              'No tiene pensum activo'
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">
-                          Ver
+                        {loadingPensum[program.programa_id] ? (
+                          <span className="text-sm text-gray-500">Cargando...</span>
+                        ) : pensumStats[program.programa_id] ? (
+                          <button 
+                            onClick={() => handleVerPensum(program)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                          >
+                            Ver
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleAutoCrearPensum(program, e)}
+                            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium"
+                            disabled={!!loadingPensum[program.programa_id]}
+                          >
+                            {loadingPensum[program.programa_id] ? 'Creando...' : 'Añadir pensum'}
+                          </button>
+                        )}
+                        { /* Botón por-programa para ir a la gestión de electivas de ese programa */ }
+                        <button
+                          onClick={() => handleGestionElectivas(program.programa_id)}
+                          className="ml-3 px-3 py-2 bg-white border border-blue-900 text-blue-900 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
+                          title={`Ver electivas de ${program.nombre_programa}`}
+                        >
+                          Electivas
                         </button>
                       </td>
                       <td className="px-6 py-4">
@@ -294,7 +449,5 @@ export default function GestionProgramas() {
             cancelLabel="Cancelar"
           />
         </div>
-      )}
-    </DashboardLayout>
   );
 }

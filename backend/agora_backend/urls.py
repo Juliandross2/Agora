@@ -17,14 +17,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-
 from api.oferta_electiva.controllers.controller_oferta_electiva import (
     actualizar_oferta, crear_oferta, eliminar_oferta, listar_ofertas_activas, obtener_oferta
 )
 from api.pensum.controllers.controller_pensum import (
     listar_pensums, listar_pensums_activos, obtener_pensum, crear_pensum,
     actualizar_pensum, eliminar_pensum, buscar_pensums,
-    obtener_estadisticas_pensum, obtener_resumen_creditos
+    obtener_estadisticas_pensum, obtener_resumen_creditos,
+    # Nuevos endpoints
+    listar_pensums_por_programa, listar_pensums_activos_por_programa,
+    obtener_pensum_actual_por_programa
 )
 from api.usuario.controllers.controller_usuario import (
     desactivar_mi_cuenta, listar_usuarios, listar_usuarios_activos, listar_usuarios_inactivos, login, register, profile, test_connection, activar_usuario
@@ -36,7 +38,7 @@ from api.programa.controllers.controller_programa import (
 from api.materia.controllers.controller_materia import (
     listar_materias, obtener_materia, crear_materia, actualizar_materia,
     eliminar_materia, listar_materias_activas, obtener_materias_por_pensum,
-    obtener_materias_por_semestre, buscar_materias, listar_materias_obligatorias,
+    obtener_materias_por_semestre, buscar_materias, listar_materias_obligatorias, patch_materia,
     test_materia_connection
 )
 from api.electiva.controllers.controller_electiva import (
@@ -44,6 +46,7 @@ from api.electiva.controllers.controller_electiva import (
     eliminar_electiva, listar_electivas_activas, obtener_electivas_por_programa,
     buscar_electivas, test_electiva_connection
 )
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 
@@ -80,22 +83,28 @@ urlpatterns = [
     path('api/oferta-electiva/<int:oferta_id>/actualizar/', actualizar_oferta, name='oferta_electiva_update'),
     path('api/oferta-electiva/<int:oferta_id>/eliminar/', eliminar_oferta, name='oferta_electiva_delete'),
     
-    # pensum
-    path('api/pensum/', listar_pensums, name='pensum_list_all'),
-    path('api/pensum/activos/', listar_pensums_activos, name='pensum_active_list'),
+    # pensum - Nuevos endpoints principales
+    path('api/pensum/programa/<int:programa_id>/', listar_pensums_por_programa, name='pensum_list_by_programa'),
+    path('api/pensum/programa/<int:programa_id>/activos/', listar_pensums_activos_por_programa, name='pensum_active_by_programa'),
+    path('api/pensum/programa/<int:programa_id>/actual/', obtener_pensum_actual_por_programa, name='pensum_current_by_programa'),
+    path('api/pensum/programa/<int:programa_id>/resumen-creditos/', obtener_resumen_creditos, name='pensum_resumen_creditos'),
+    
+    # pensum - Endpoints existentes (algunos marcados como deprecated)
+    path('api/pensum/', listar_pensums, name='pensum_list_all'),  # DEPRECATED
+    path('api/pensum/activos/', listar_pensums_activos, name='pensum_active_list'),  # DEPRECATED
     path('api/pensum/buscar/', buscar_pensums, name='pensum_search'),
     path('api/pensum/crear/', crear_pensum, name='pensum_create'),
     path('api/pensum/<int:pensum_id>/', obtener_pensum, name='pensum_detail'),
     path('api/pensum/<int:pensum_id>/actualizar/', actualizar_pensum, name='pensum_update'),
     path('api/pensum/<int:pensum_id>/eliminar/', eliminar_pensum, name='pensum_delete'),
     path('api/pensum/<int:pensum_id>/estadisticas/', obtener_estadisticas_pensum, name='pensum_estadisticas'),
-    path('api/pensum/resumen-credito/<int:programa_id>/', obtener_resumen_creditos, name='pensum_resumen_creditos'),
     
     # materia
     path('api/materia/', listar_materias, name='materia_list'),
     path('api/materia/<int:materia_id>/', obtener_materia, name='materia_detail'),
     path('api/materia/crear/', crear_materia, name='materia_create'),
     path('api/materia/<int:materia_id>/actualizar/', actualizar_materia, name='materia_update'),
+    path('api/materia/<int:materia_id>/patch/', patch_materia, name='materia_patch'),
     path('api/materia/<int:materia_id>/eliminar/', eliminar_materia, name='materia_delete'),
     path('api/materia/activas/', listar_materias_activas, name='materia_active_list'),
     path('api/materia/pensum/<int:pensum_id>/', obtener_materias_por_pensum, name='materia_by_pensum'),

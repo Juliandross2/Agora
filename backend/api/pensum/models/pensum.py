@@ -31,7 +31,17 @@ class Pensum(models.Model):
         ).count()
     
     @property
-    def total_creditos(self):
+    def total_materias_electivas(self):
+        """Cuenta el total de materias electivas activas"""
+        from api.materia.models.materia import Materia
+        return Materia.objects.filter(
+            pensum_id=self,
+            es_obligatoria=False,
+            es_activa=True
+        ).count()
+    
+    @property
+    def total_creditos_electivas(self):
         """Cuenta el total de créditos de materias electivas activas"""
         from api.materia.models.materia import Materia
         total = Materia.objects.filter(
@@ -39,6 +49,7 @@ class Pensum(models.Model):
             es_obligatoria=False,
             es_activa=True
         ).aggregate(total_creditos=Sum('creditos'))['total_creditos']
+        return total or 0
     
     def __str__(self):
         return f"Pensum {self.pensum_id} - Programa {self.programa_id} - Año {self.anio_creacion}"

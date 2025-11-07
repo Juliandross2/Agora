@@ -6,7 +6,7 @@ class ElectivaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Electiva
-        fields = ['electiva_id', 'programa_id', 'nombre_electiva', 'es_activa']
+        fields = ['electiva_id', 'programa_id', 'nombre_electiva', 'descripcion', 'es_activa']
         read_only_fields = ['electiva_id']
     
     def validate_nombre_electiva(self, value):
@@ -26,6 +26,7 @@ class ElectivaCreateSerializer(serializers.Serializer):
     """Serializer para crear electiva"""
     programa_id = serializers.IntegerField(required=True)
     nombre_electiva = serializers.CharField(max_length=100, required=True)
+    descripcion = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     es_activa = serializers.BooleanField(default=True, required=False)
     
     def validate_nombre_electiva(self, value):
@@ -59,6 +60,7 @@ class ElectivaUpdateSerializer(serializers.Serializer):
     """Serializer para actualizar electiva"""
     programa_id = serializers.IntegerField(required=False)
     nombre_electiva = serializers.CharField(max_length=100, required=False)
+    descripcion = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     es_activa = serializers.BooleanField(required=False)
     
     def validate_nombre_electiva(self, value):

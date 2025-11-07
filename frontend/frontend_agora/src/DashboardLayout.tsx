@@ -1,29 +1,36 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 
-interface DashboardLayoutProps {
-  // children as render-prop: recibe el activeSection y devuelve contenido derecho
-  children: (activeSection: string) => React.ReactNode;
-}
-
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const [activeSection, setActiveSection] = useState('home');
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        activeSection={activeSection}
-        setActiveSection={setActiveSection}
-        isCollapsed={isCollapsed}
-        onToggle={() => setIsCollapsed((s) => !s)}
-      />
-      <main className="flex-1 overflow-auto p-6 transition-all">
-        {/* Renderizamos el contenido derecho según activeSection */}
-        {children(activeSection)}
-      </main>
-    </div>
-  );
+type ActiveSectionCtx = {
+  activeSection: string;
+  setActiveSection: (s: string) => void;
 };
 
-export default DashboardLayout;
+const ActiveSectionContext = createContext<ActiveSectionCtx>({
+  activeSection: 'home',
+  setActiveSection: () => {},
+});
+
+export const useActiveSection = () => useContext(ActiveSectionContext);
+
+export default function DashboardLayout() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+
+  return (
+    <ActiveSectionContext.Provider value={{ activeSection, setActiveSection }}>
+      <div className="flex h-screen">
+        <Sidebar
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          isCollapsed={isCollapsed}
+          onToggle={() => setIsCollapsed(v => !v)}
+        />
+        <main className="flex-1 overflow-auto bg-gray-50">
+          <Outlet />
+        </main>
+      </div>
+    </ActiveSectionContext.Provider>
+  );
+}

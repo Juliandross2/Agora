@@ -10,7 +10,7 @@ export const listarProgramas = async (): Promise<apiProgramaResponse> => {
     throw new Error('No access token available');
   }
 
-  const res = await fetch(`${BASE_URL}/`, {
+  const res = await fetch(`${BASE_URL}/activos/`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export const crearPrograma = async (programa: { nombre_programa: string }): Prom
     throw new Error('No access token available');
   }
 
-  const res = await fetch(`${BASE_URL}/`, {
+  const res = await fetch(`${BASE_URL}/crear/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export const actualizarPrograma = async (programa_id: number, programa: { nombre
     throw new Error('No access token available');
   }
 
-  const res = await fetch(`${BASE_URL}/${programa_id}/`, {
+  const res = await fetch(`${BASE_URL}/${programa_id}/actualizar/`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export const eliminarPrograma = async (programa_id: number): Promise<{ message: 
     throw new Error('No access token available');
   }
 
-  const res = await fetch(`${BASE_URL}/${programa_id}/`, {
+  const res = await fetch(`${BASE_URL}/${programa_id}/eliminar/`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',

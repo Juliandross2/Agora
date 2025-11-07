@@ -21,10 +21,21 @@ class ProgramaService:
                     'total': 0
                 }
             
-            serializer = ProgramaSerializer(programas, many=True)
+            # importar Pensum de forma local para evitar posibles ciclos
+            from api.pensum.models.pensum import Pensum
+
+            programas_data = []
+            for p in programas:
+                # buscar pensum activo para el programa (puede ser None)
+                pensum_activo_id = Pensum.objects.filter(programa_id=p, es_activo=True).values_list('pensum_id', flat=True).first()
+                programas_data.append({
+                    **ProgramaSerializer(p).data,
+                    'pensum_activo_id': pensum_activo_id
+                })
+
             return True, {
                 'message': 'Programas obtenidos exitosamente',
-                'programas': serializer.data,
+                'programas': programas_data,
                 'total': len(programas)
             }
         except Exception as e:
@@ -49,10 +60,16 @@ class ProgramaService:
                     'error': 'Programa no encontrado'
                 }
             
+            # buscar pensum activo
+            from api.pensum.models.pensum import Pensum
+            pensum_activo_id = Pensum.objects.filter(programa_id=programa, es_activo=True).values_list('pensum_id', flat=True).first()
+
             serializer = ProgramaSerializer(programa)
+            data = serializer.data
+            data['pensum_activo_id'] = pensum_activo_id
             return True, {
                 'message': 'Programa obtenido exitosamente',
-                'programa': serializer.data
+                'programa': data
             }
         except Exception as e:
             print(f"[SERVICE] Error al obtener programa {programa_id}: {e}")
@@ -182,10 +199,19 @@ class ProgramaService:
                     'total': 0
                 }
             
-            serializer = ProgramaSerializer(programas, many=True)
+            from api.pensum.models.pensum import Pensum
+
+            programas_data = []
+            for p in programas:
+                pensum_activo_id = Pensum.objects.filter(programa_id=p, es_activo=True).values_list('pensum_id', flat=True).first()
+                programas_data.append({
+                    **ProgramaSerializer(p).data,
+                    'pensum_activo_id': pensum_activo_id
+                })
+
             return True, {
                 'message': 'Programas activos obtenidos exitosamente',
-                'programas': serializer.data,
+                'programas': programas_data,
                 'total': len(programas)
             }
         except Exception as e:
@@ -212,10 +238,20 @@ class ProgramaService:
                     'total': 0
                 }
             
-            serializer = ProgramaSerializer(programas, many=True)
+            from api.pensum.models.pensum import Pensum
+
+            programas_data = []
+            for p in programas:
+                pensum_activo_id = Pensum.objects.filter(programa_id=p, es_activo=True).values_list('pensum_id', flat=True).first()
+                programas_data.append({
+                    **ProgramaSerializer(p).data,
+                    'pensum_activo_id': pensum_activo_id
+                })
+
+            serializer = ProgramaSerializer(programas, many=True)  # kept for compatibility if needed
             return True, {
                 'message': f'Programas encontrados para "{nombre}"',
-                'programas': serializer.data,
+                'programas': programas_data,
                 'total': len(programas)
             }
         except Exception as e:

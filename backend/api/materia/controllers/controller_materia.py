@@ -3,8 +3,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from api.materia.services.materia_service import MateriaService
+from api.materia.serializers.materia_serializer import (
+    MateriaSerializer, MateriaCreateSerializer, MateriaUpdateSerializer
+)
 import json
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample, OpenApiParameter
 
 class MateriaController:
     """Controller para manejar las peticiones HTTP relacionadas con Materia"""
@@ -15,7 +18,45 @@ class MateriaController:
 # Instancia global del controller
 materia_controller = MateriaController()
 
-@extend_schema(tags=['Materia - Público'], summary="Listar todas las materias")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Listar todas las materias",
+    description="Devuelve la lista de todas las materias (incluye pensum relacionado).",
+    responses={
+        200: OpenApiResponse(
+            description="Lista de materias (puede estar vacía)",
+            examples=[
+                OpenApiExample(
+                    "Success Example",
+                    value={
+                        "message": "Materias obtenidas exitosamente",
+                        "materias": [
+                            {
+                                "materia_id": 1,
+                                "pensum_id": 1,
+                                "nombre_materia": "Álgebra Lineal",
+                                "creditos": 3,
+                                "es_obligatoria": True,
+                                "es_activa": True,
+                                "semestre": 2
+                            }
+                        ],
+                        "total": 1
+                    }
+                ),
+                OpenApiExample(
+                    "Empty Example",
+                    value={
+                        "message": "No hay materias registradas",
+                        "materias": [],
+                        "total": 0
+                    }
+                )
+            ]
+        ),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_materias(request):
@@ -37,7 +78,44 @@ def listar_materias(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Obtener materia por ID")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Obtener materia por ID",
+    parameters=[
+        OpenApiParameter(name='materia_id', type=int, location=OpenApiParameter.PATH, description='ID de la materia', required=True)
+    ],
+    responses={
+        200: OpenApiResponse(
+            description="Materia encontrada",
+            examples=[
+                OpenApiExample(
+                    "Success Example",
+                    value={
+                        "message": "Materia obtenida exitosamente",
+                        "materia": {
+                            "materia_id": 1,
+                            "pensum_id": 1,
+                            "nombre_materia": "Álgebra Lineal",
+                            "creditos": 3,
+                            "es_obligatoria": True,
+                            "es_activa": True,
+                            "semestre": 2
+                        }
+                    }
+                )
+            ]
+        ),
+        404: OpenApiResponse(
+            description="Materia no encontrada",
+            examples=[OpenApiExample("Not Found", value={"error": "Materia no encontrada"})]
+        ),
+        400: OpenApiResponse(
+            description="ID inválido",
+            examples=[OpenApiExample("Invalid ID", value={"error": "ID de materia inválido"})]
+        ),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_materia(request, materia_id):
@@ -59,7 +137,41 @@ def obtener_materia(request, materia_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Admin'], summary="Crear nueva materia")
+@extend_schema(
+    tags=['Materia - Admin'],
+    summary="Crear nueva materia",
+    description="Crea una nueva materia. Campos requeridos: pensum_id, nombre_materia, creditos, semestre. Campos opcionales: es_obligatoria, es_activa.",
+    request=MateriaCreateSerializer,
+    responses={
+        201: OpenApiResponse(
+            description="Materia creada exitosamente",
+            examples=[OpenApiExample(
+                "Created",
+                value={
+                    "message": "Materia creada exitosamente",
+                    "materia": {
+                        "materia_id": 10,
+                        "pensum_id": 1,
+                        "nombre_materia": "Programación I",
+                        "creditos": 4,
+                        "es_obligatoria": True,
+                        "es_activa": True,
+                        "semestre": 1
+                    }
+                }
+            )]
+        ),
+        400: OpenApiResponse(
+            description="Datos inválidos o pensum inexistente",
+            examples=[
+                OpenApiExample("Validation Error", value={"error": "Datos inválidos", "details": {"creditos": ["Los créditos deben ser mayores a 0"]}}),
+                OpenApiExample("Pensum Not Found", value={"error": "El pensum especificado no existe"})
+            ]
+        ),
+        400: OpenApiResponse(description="JSON inválido"),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def crear_materia(request):
@@ -101,7 +213,42 @@ def crear_materia(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Admin'], summary="Actualizar materia existente")
+@extend_schema(
+    tags=['Materia - Admin'],
+    summary="Actualizar materia existente",
+    description="Actualiza campos de una materia. Enviar solo los campos a modificar.",
+    parameters=[OpenApiParameter(name='materia_id', type=int, location=OpenApiParameter.PATH, required=True)],
+    request=MateriaUpdateSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="Materia actualizada exitosamente",
+            examples=[OpenApiExample(
+                "Success Example",
+                value={
+                    "message": "Materia actualizada exitosamente",
+                    "materia": {
+                        "materia_id": 1,
+                        "pensum_id": 1,
+                        "nombre_materia": "Álgebra Lineal Avanzada",
+                        "creditos": 4,
+                        "es_obligatoria": True,
+                        "es_activa": True,
+                        "semestre": 3
+                    }
+                }
+            )]
+        ),
+        400: OpenApiResponse(
+            description="Datos inválidos o ID inválido",
+            examples=[
+                OpenApiExample("Validation Error", value={"error": "Datos inválidos", "details": {"nombre_materia": ["El nombre de la materia no puede estar vacío"]}}),
+                OpenApiExample("Invalid ID", value={"error": "ID de materia inválido"})
+            ]
+        ),
+        404: OpenApiResponse(description="Materia no encontrada", examples=[OpenApiExample("Not Found", value={"error": "Materia no encontrada"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['PUT'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def actualizar_materia(request, materia_id):
@@ -141,7 +288,18 @@ def actualizar_materia(request, materia_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Admin'], summary="Eliminar materia")
+@extend_schema(
+    tags=['Materia - Admin'],
+    summary="Eliminar materia",
+    description="Eliminación lógica (marca es_activa = False).",
+    parameters=[OpenApiParameter(name='materia_id', type=int, location=OpenApiParameter.PATH, required=True)],
+    responses={
+        200: OpenApiResponse(description="Materia marcada como inactiva", examples=[OpenApiExample("Success", value={"message": "Materia marcada como inactiva exitosamente"})]),
+        404: OpenApiResponse(description="Materia no encontrada", examples=[OpenApiExample("Not Found", value={"error": "Materia no encontrada"})]),
+        400: OpenApiResponse(description="ID inválido", examples=[OpenApiExample("Invalid ID", value={"error": "ID de materia inválido"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['DELETE'])
 @permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
 def eliminar_materia(request, materia_id):
@@ -163,7 +321,19 @@ def eliminar_materia(request, materia_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Listar solo materias activas")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Listar solo materias activas",
+    responses={
+        200: OpenApiResponse(
+            description="Lista de materias activas",
+            examples=[
+                OpenApiExample("Success", value={"message": "Materias activas obtenidas exitosamente", "materias": [], "total": 0})
+            ]
+        ),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_materias_activas(request):
@@ -185,7 +355,16 @@ def listar_materias_activas(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Obtener materias por pensum")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Obtener materias por pensum",
+    parameters=[OpenApiParameter(name='pensum_id', type=int, location=OpenApiParameter.PATH, required=True)],
+    responses={
+        200: OpenApiResponse(description="Materias del pensum", examples=[OpenApiExample("Success", value={"message": "Materias del pensum 1 obtenidas exitosamente", "materias": [], "total": 0})]),
+        400: OpenApiResponse(description="ID inválido", examples=[OpenApiExample("Invalid", value={"error": "ID de pensum inválido"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_materias_por_pensum(request, pensum_id):
@@ -207,7 +386,16 @@ def obtener_materias_por_pensum(request, pensum_id):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Obtener materias por semestre")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Obtener materias por semestre",
+    parameters=[OpenApiParameter(name='semestre', type=int, location=OpenApiParameter.PATH, required=True)],
+    responses={
+        200: OpenApiResponse(description="Materias del semestre", examples=[OpenApiExample("Success", value={"message": "Materias del semestre 1 obtenidas exitosamente", "materias": [], "total": 0})]),
+        400: OpenApiResponse(description="Semestre inválido", examples=[OpenApiExample("Invalid", value={"error": "Semestre inválido"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_materias_por_semestre(request, semestre):
@@ -229,7 +417,17 @@ def obtener_materias_por_semestre(request, semestre):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Buscar materias por nombre")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Buscar materias por nombre",
+    description="Busca materias por nombre parcial. Query parameter: ?nombre=<texto>",
+    parameters=[OpenApiParameter(name='nombre', type=str, location=OpenApiParameter.QUERY, required=True)],
+    responses={
+        200: OpenApiResponse(description="Materias encontradas", examples=[OpenApiExample("Success", value={"message": "Materias encontradas para \"Álgebra\"", "materias": [], "total": 0})]),
+        400: OpenApiResponse(description="Parámetro faltante", examples=[OpenApiExample("Missing", value={"error": 'Parámetro \"nombre\" requerido para la búsqueda'})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def buscar_materias(request):
@@ -260,7 +458,14 @@ def buscar_materias(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Listar solo materias obligatorias")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Listar solo materias obligatorias",
+    responses={
+        200: OpenApiResponse(description="Lista de materias obligatorias", examples=[OpenApiExample("Success", value={"message": "Materias obligatorias obtenidas exitosamente", "materias": [], "total": 0})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_materias_obligatorias(request):
@@ -282,7 +487,29 @@ def listar_materias_obligatorias(request):
             'details': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@extend_schema(tags=['Materia - Público'], summary="Endpoint de prueba para verificar conexión de la api")
+@extend_schema(
+    tags=['Materia - Público'],
+    summary="Endpoint de prueba para verificar conexión de la api",
+    responses={
+        200: OpenApiResponse(description="Estado OK", examples=[OpenApiExample("Test", value={
+            "message": "API Materia funcionando correctamente",
+            "status": "OK",
+            "endpoints": [
+                "GET /api/materia/ - Listar todas las materias",
+                "GET /api/materia/{id}/ - Obtener materia por ID",
+                "POST /api/materia/ - Crear materia",
+                "PUT /api/materia/{id}/ - Actualizar materia",
+                "DELETE /api/materia/{id}/ - Eliminar materia",
+                "GET /api/materia/activas/ - Listar materias activas",
+                "GET /api/materia/pensum/{pensum_id}/ - Obtener materias por pensum",
+                "GET /api/materia/semestre/{semestre}/ - Obtener materias por semestre",
+                "GET /api/materia/buscar/?nombre=<nombre> - Buscar materias",
+                "GET /api/materia/obligatorias/ - Listar materias obligatorias",
+                "GET /api/materia/test/ - Test de conexión"
+            ]
+        })])
+    }
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def test_materia_connection(request):
@@ -307,3 +534,69 @@ def test_materia_connection(request):
         ]
     }, status=status.HTTP_200_OK)
 
+
+@extend_schema(
+    tags=['Materia - Admin'],
+    summary="Parcialmente actualizar materia (PATCH)",
+    description="Actualiza uno o varios campos de una materia. Pensado para cambios parciales como actualizar el semestre. Enviar solo los campos a modificar.",
+    parameters=[OpenApiParameter(name='materia_id', type=int, location=OpenApiParameter.PATH, required=True)],
+    request=MateriaUpdateSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="Materia actualizada parcialmente exitosamente",
+            examples=[OpenApiExample(
+                "Success Example",
+                value={
+                    "message": "Materia actualizada exitosamente",
+                    "materia": {
+                        "materia_id": 1,
+                        "pensum_id": 1,
+                        "nombre_materia": "Álgebra Lineal",
+                        "creditos": 3,
+                        "es_obligatoria": True,
+                        "es_activa": True,
+                        "semestre": 3
+                    }
+                }
+            )]
+        ),
+        400: OpenApiResponse(
+            description="Datos inválidos o ID inválido",
+            examples=[OpenApiExample("Validation Error", value={"error": "Datos inválidos", "details": {"semestre": ["El semestre no puede ser mayor a 12"]}})]
+        ),
+        404: OpenApiResponse(description="Materia no encontrada", examples=[OpenApiExample("Not Found", value={"error": "Materia no encontrada"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
+@api_view(['PATCH'])
+@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+def patch_materia(request, materia_id):
+    """
+    Patch parcial de materia (ideal para actualizar semestre u otros campos parciales)
+    Enviar sólo los campos a actualizar (ej. {"semestre": 3})
+    """
+    try:
+        # Obtener datos del request
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.data
+        
+        # Llamar al servicio indicando partial=True
+        success, response = materia_controller.service.actualizar_materia(materia_id, data, partial=True)
+        
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        else:
+            # Validaciones o errores del service retornan dict con 'error'/'details'
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            
+    except json.JSONDecodeError:
+        return Response({
+            'error': 'JSON inválido'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'Error interno del servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

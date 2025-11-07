@@ -95,8 +95,6 @@ export default function ComparacionList() {
 
   if (!DEBUG_MODE && estudiantes.length === 0) {
     return (
-      <DashboardLayout>
-        {() => (
           <div className="p-8 text-center">
             <div className="max-w-md mx-auto">
               <div className="text-gray-400 mb-4">
@@ -117,14 +115,10 @@ export default function ComparacionList() {
               </button>
             </div>
           </div>
-        )}
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
-      {() => (
         <div className="min-h-full bg-gray-50">
           {/* Header azul */}
           <div className="bg-blue-900 text-white py-6">
@@ -278,7 +272,5 @@ export default function ComparacionList() {
             </div>
           </div>
         </div>
-      )}
-    </DashboardLayout>
   );
 }

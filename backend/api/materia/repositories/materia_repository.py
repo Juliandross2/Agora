@@ -6,17 +6,17 @@ class MateriaRepository:
     """Repository para manejar el acceso a datos de Materia"""
     
     def obtener_todas(self) -> List[Materia]:
-        """Obtener todas las materias"""
+        """Obtener todas las materias activas"""
         try:
-            return list(Materia.objects.select_related('pensum_id').all())
+            return list(Materia.objects.select_related('pensum_id').filter(es_activa=True))
         except Exception as e:
             print(f"[REPOSITORY] Error al obtener materias: {e}")
             return []
     
     def obtener_por_id(self, materia_id: int) -> Optional[Materia]:
-        """Obtener materia por ID"""
+        """Obtener materia por ID solo si está activa"""
         try:
-            return Materia.objects.select_related('pensum_id').get(materia_id=materia_id)
+            return Materia.objects.select_related('pensum_id').get(materia_id=materia_id, es_activa=True)
         except Materia.DoesNotExist:
             return None
         except Exception as e:
@@ -101,25 +101,25 @@ class MateriaRepository:
             return []
     
     def obtener_por_pensum(self, pensum_id: int) -> List[Materia]:
-        """Obtener materias por pensum"""
+        """Obtener materias por pensum (solo activas)"""
         try:
-            return list(Materia.objects.filter(pensum_id=pensum_id))
+            return list(Materia.objects.filter(pensum_id=pensum_id, es_activa=True))
         except Exception as e:
             print(f"[REPOSITORY] Error al obtener materias por pensum {pensum_id}: {e}")
             return []
     
     def obtener_por_semestre(self, semestre: int) -> List[Materia]:
-        """Obtener materias por semestre"""
+        """Obtener materias por semestre (solo activas)"""
         try:
-            return list(Materia.objects.select_related('pensum_id').filter(semestre=semestre))
+            return list(Materia.objects.select_related('pensum_id').filter(semestre=semestre, es_activa=True))
         except Exception as e:
             print(f"[REPOSITORY] Error al obtener materias por semestre {semestre}: {e}")
             return []
     
     def buscar_por_nombre(self, nombre: str) -> List[Materia]:
-        """Buscar materias por nombre (búsqueda parcial)"""
+        """Buscar materias por nombre (búsqueda parcial) — solo activas"""
         try:
-            return list(Materia.objects.select_related('pensum_id').filter(nombre_materia__icontains=nombre))
+            return list(Materia.objects.select_related('pensum_id').filter(nombre_materia__icontains=nombre, es_activa=True))
         except Exception as e:
             print(f"[REPOSITORY] Error al buscar materias por nombre '{nombre}': {e}")
             return []
@@ -131,5 +131,5 @@ class MateriaRepository:
         except Exception as e:
             print(f"[REPOSITORY] Error al obtener materias obligatorias: {e}")
             return []
-    
+
 
