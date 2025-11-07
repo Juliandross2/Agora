@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import { obtenerPensumActual, obtenerMateriasPorSemestre } from '../services/consumers/PensumClient';
+import CrearMateriaFormDialog from '../components/CrearMateriaFormDialog';
+import type { Materia as MateriaModel } from '../services/domain/PensumModels';
 import type { PensumProgramaResponse, MateriaPorSemestre } from '../services/domain/PensumModels';
 import { useActiveSection } from '../DashboardLayout';
 import CardSemestreMaterias from '../components/CardSemestreMaterias';
@@ -12,6 +14,8 @@ export default function PensumActual() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { setActiveSection } = useActiveSection();
+
+  const [crearMateriaOpen, setCrearMateriaOpen] = useState(false);
 
   const [pensumData, setPensumData] = useState<PensumProgramaResponse | null>(null);
   const [materiasPorSemestre, setMateriasPorSemestre] = useState<MateriaPorSemestre[]>([]);
@@ -71,7 +75,16 @@ export default function PensumActual() {
   const handleVolver = () => {
     navigate('/gestion-programas');
   };
-
+ 
+  const handleCrearMateriaSuccess = async (created?: MateriaModel) => {
+    // refrescar materias si existe pensum activo
+    const pensumId = pensumData?.pensum_actual?.pensum_id;
+    if (pensumId) {
+      await loadMaterias(pensumId);
+    }
+    setCrearMateriaOpen(false);
+  };
+ 
   // Generar array de 10 semestres con las materias correspondientes
   const semestresConMaterias = Array.from({ length: 10 }, (_, index) => {
     const semestre = index + 1;
@@ -125,17 +138,35 @@ export default function PensumActual() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={handleVolver}
-            className="text-blue-900 hover:text-blue-700 transition flex items-center gap-2"
-          >
-            <ArrowLeft size={20} />
-            <span className="font-medium">Volver</span>
-          </button>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleVolver}
+              className="text-blue-900 hover:text-blue-700 transition flex items-center gap-2"
+            >
+              <ArrowLeft size={20} />
+              <span className="font-medium">Volver</span>
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={() => setCrearMateriaOpen(true)}
+              title="Crear materia"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+            >
+              + Crear materia
+            </button>
+          </div>
         </div>
         <h1 className="text-3xl font-bold text-blue-900">Pensum - {pensumData.programa_nombre}</h1>
       </div>
+ 
+      <CrearMateriaFormDialog
+        isOpen={crearMateriaOpen}
+        onClose={() => setCrearMateriaOpen(false)}
+        pensumId={pensum?.pensum_id ?? null}
+        onCreated={handleCrearMateriaSuccess}
+      />
 
       <div className="p-8">
         {!pensum ? (

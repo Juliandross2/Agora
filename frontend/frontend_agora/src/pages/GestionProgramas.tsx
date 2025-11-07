@@ -9,7 +9,7 @@ import {
   actualizarPrograma, 
   eliminarPrograma 
 } from '../services/consumers/ProgramaClient';
-import { obtenerEstadisticasPensum } from '../services/consumers/PensumClient';
+import { obtenerEstadisticasPensum, crearPensum } from '../services/consumers/PensumClient';
 import type { PensumEstadisticas } from '../services/domain/PensumModels';
 import type { Programa } from '../services/domain/ProgramaModels';
 import ProgramaFormDialog from '../components/ProgramaFormDialog';
@@ -198,6 +198,47 @@ export default function GestionProgramas() {
     navigate(`/pensum/${programa.programa_id}`);
   };
 
+  // Crea un pensum automáticamente (sin UI adicional) y redirige a la vista del pensum creado.
+  const handleAutoCrearPensum = async (programa: Programa, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const pid = programa.programa_id;
+    // evitar duplicate clicks
+    if (loadingPensum[pid]) return;
+
+    setLoadingPensum((s) => ({ ...s, [pid]: true }));
+
+    try {
+      const payload = {
+        programa_id: pid,
+        anio_creacion: new Date().getFullYear(),
+        es_activo: true,
+      };
+
+      const res = await crearPensum(payload);
+      enqueueSnackbar(res.message || 'Pensum creado correctamente', { variant: 'success' });
+
+      // intentar obtener estadísticas del pensum recién creado para actualizar UI
+      try {
+        const stats = await obtenerEstadisticasPensum(res.pensum.pensum_id);
+        setPensumStats((s) => ({ ...s, [pid]: stats }));
+      } catch {
+        setPensumStats((s) => ({ ...s, [pid]: null }));
+      }
+
+      // refrescar lista de programas para que el backend devuelva pensum_activo_id actualizado
+      await loadProgramas();
+
+      // redirigir a la vista del pensum actual del programa
+      navigate(`/pensum/${pid}`);
+    } catch (err: any) {
+      const msg = err?.message || 'Error al crear pensum';
+      enqueueSnackbar(msg, { variant: 'error' });
+    } finally {
+      setLoadingPensum((s) => ({ ...s, [pid]: false }));
+      fetchedRef.current.add(pid);
+    }
+  };
+
   const goToPage = (p: number) => {
     const page = Math.min(Math.max(1, p), totalPages);
     setCurrentPage(page);
@@ -297,10 +338,11 @@ export default function GestionProgramas() {
                           </button>
                         ) : (
                           <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/pensum/crear?programa_id=${program.programa_id}`); }}
+                            onClick={(e) => handleAutoCrearPensum(program, e)}
                             className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium"
+                            disabled={!!loadingPensum[program.programa_id]}
                           >
-                            Añadir pensum
+                            {loadingPensum[program.programa_id] ? 'Creando...' : 'Añadir pensum'}
                           </button>
                         )}
                       </td>

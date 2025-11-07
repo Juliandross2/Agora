@@ -534,3 +534,69 @@ def test_materia_connection(request):
         ]
     }, status=status.HTTP_200_OK)
 
+
+@extend_schema(
+    tags=['Materia - Admin'],
+    summary="Parcialmente actualizar materia (PATCH)",
+    description="Actualiza uno o varios campos de una materia. Pensado para cambios parciales como actualizar el semestre. Enviar solo los campos a modificar.",
+    parameters=[OpenApiParameter(name='materia_id', type=int, location=OpenApiParameter.PATH, required=True)],
+    request=MateriaUpdateSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="Materia actualizada parcialmente exitosamente",
+            examples=[OpenApiExample(
+                "Success Example",
+                value={
+                    "message": "Materia actualizada exitosamente",
+                    "materia": {
+                        "materia_id": 1,
+                        "pensum_id": 1,
+                        "nombre_materia": "Álgebra Lineal",
+                        "creditos": 3,
+                        "es_obligatoria": True,
+                        "es_activa": True,
+                        "semestre": 3
+                    }
+                }
+            )]
+        ),
+        400: OpenApiResponse(
+            description="Datos inválidos o ID inválido",
+            examples=[OpenApiExample("Validation Error", value={"error": "Datos inválidos", "details": {"semestre": ["El semestre no puede ser mayor a 12"]}})]
+        ),
+        404: OpenApiResponse(description="Materia no encontrada", examples=[OpenApiExample("Not Found", value={"error": "Materia no encontrada"})]),
+        500: OpenApiResponse(description="Error interno del servidor")
+    }
+)
+@api_view(['PATCH'])
+@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+def patch_materia(request, materia_id):
+    """
+    Patch parcial de materia (ideal para actualizar semestre u otros campos parciales)
+    Enviar sólo los campos a actualizar (ej. {"semestre": 3})
+    """
+    try:
+        # Obtener datos del request
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.data
+        
+        # Llamar al servicio indicando partial=True
+        success, response = materia_controller.service.actualizar_materia(materia_id, data, partial=True)
+        
+        if success:
+            return Response(response, status=status.HTTP_200_OK)
+        else:
+            # Validaciones o errores del service retornan dict con 'error'/'details'
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            
+    except json.JSONDecodeError:
+        return Response({
+            'error': 'JSON inválido'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': 'Error interno del servidor',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

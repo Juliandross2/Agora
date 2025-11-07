@@ -38,7 +38,7 @@ from api.programa.controllers.controller_programa import (
 from api.materia.controllers.controller_materia import (
     listar_materias, obtener_materia, crear_materia, actualizar_materia,
     eliminar_materia, listar_materias_activas, obtener_materias_por_pensum,
-    obtener_materias_por_semestre, buscar_materias, listar_materias_obligatorias,
+    obtener_materias_por_semestre, buscar_materias, listar_materias_obligatorias, patch_materia,
     test_materia_connection
 )
 from api.electiva.controllers.controller_electiva import (
@@ -104,6 +104,7 @@ urlpatterns = [
     path('api/materia/<int:materia_id>/', obtener_materia, name='materia_detail'),
     path('api/materia/crear/', crear_materia, name='materia_create'),
     path('api/materia/<int:materia_id>/actualizar/', actualizar_materia, name='materia_update'),
+    path('api/materia/<int:materia_id>/patch/', patch_materia, name='materia_patch'),
     path('api/materia/<int:materia_id>/eliminar/', eliminar_materia, name='materia_delete'),
     path('api/materia/activas/', listar_materias_activas, name='materia_active_list'),
     path('api/materia/pensum/<int:pensum_id>/', obtener_materias_por_pensum, name='materia_by_pensum'),
