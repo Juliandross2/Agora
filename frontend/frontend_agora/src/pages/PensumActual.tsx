@@ -8,6 +8,8 @@ import type { Materia as MateriaModel } from '../services/domain/PensumModels';
 import type { PensumProgramaResponse, MateriaPorSemestre } from '../services/domain/PensumModels';
 import { useActiveSection } from '../DashboardLayout';
 import CardSemestreMaterias from '../components/CardSemestreMaterias';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { patchMateria } from '../services/consumers/MateriaClient';
 
 export default function PensumActual() {
   const { programaId } = useParams();
@@ -83,6 +85,43 @@ export default function PensumActual() {
       await loadMaterias(pensumId);
     }
     setCrearMateriaOpen(false);
+  };
+
+  // Handler para drag and drop
+  const onDragEnd = async (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+    
+    // Si no hay destino o es la misma posición, no hacer nada
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    // Extraer semestres de los droppableIds (formato: 'semestre-X')
+    const sourceSemestre = parseInt(source.droppableId.replace('semestre-', ''), 10);
+    const destinationSemestre = parseInt(destination.droppableId.replace('semestre-', ''), 10);
+    const materiaId = parseInt(draggableId, 10);
+
+    // Solo actualizar si cambia de semestre
+    if (sourceSemestre !== destinationSemestre) {
+      try {
+        await patchMateria(materiaId, { semestre: destinationSemestre });
+        enqueueSnackbar('Materia movida correctamente', { variant: 'success' });
+        
+        // Refrescar materias
+        const pensumId = pensumData?.pensum_actual?.pensum_id;
+        if (pensumId) {
+          await loadMaterias(pensumId);
+        }
+      } catch (err: any) {
+        const msg = err?.message || 'Error al mover materia';
+        enqueueSnackbar(msg, { variant: 'error' });
+        
+        // Refrescar materias para evitar inconsistencias
+        const pensumId = pensumData?.pensum_actual?.pensum_id;
+        if (pensumId) {
+          await loadMaterias(pensumId);
+        }
+      }
+    }
   };
  
   // Generar array de 10 semestres con las materias correspondientes
@@ -217,17 +256,75 @@ export default function PensumActual() {
               </div>
             )}
 
-            {/* Grid de semestres con materias */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-              {semestresConMaterias.map((semestreData) => (
-                <CardSemestreMaterias
-                  key={semestreData.semestre}
-                  semestre={semestreData.semestre}
-                  materias={semestreData.materias}
-                  creditosTotales={semestreData.creditos_totales}
-                />
-              ))}
-            </div>
+            {/* Grid de semestres con materias - CON DRAG AND DROP */}
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                {semestresConMaterias.map((semestreData) => (
+                  <Droppable droppableId={`semestre-${semestreData.semestre}`} key={semestreData.semestre}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`bg-white rounded-lg shadow-sm border overflow-hidden ${
+                          snapshot.isDraggingOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="bg-blue-900 text-white px-4 py-3">
+                          <h3 className="font-semibold text-center">Semestre {semestreData.semestre}</h3>
+                          <div className="text-xs text-blue-200 text-center">
+                            {semestreData.creditos_totales > 0 ? `${semestreData.creditos_totales} créditos` : '0 créditos'}
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3 min-h-[120px]">
+                          {semestreData.materias.length === 0 ? (
+                            <div className="text-center text-gray-400 py-4">
+                              <div className="text-sm">Sin materias</div>
+                            </div>
+                          ) : (
+                            semestreData.materias.map((materia, index) => (
+                              <Draggable 
+                                key={materia.materia_id} 
+                                draggableId={materia.materia_id.toString()} 
+                                index={index}
+                              >
+                                {(draggableProvided, draggableSnapshot) => (
+                                  <div
+                                    ref={draggableProvided.innerRef}
+                                    {...draggableProvided.draggableProps}
+                                    {...draggableProvided.dragHandleProps}
+                                    className={`border rounded p-3 cursor-move transition-all ${
+                                      draggableSnapshot.isDragging 
+                                        ? 'shadow-lg transform rotate-2 bg-white border-blue-300' 
+                                        : ''
+                                    } ${
+                                      (materia as any).es_electiva
+                                        ? 'bg-orange-50 border-orange-200'
+                                        : 'bg-green-50 border-green-200'
+                                    }`}
+                                  >
+                                    <div className={`font-medium text-sm ${
+                                      (materia as any).es_electiva ? 'text-orange-800' : 'text-green-800'
+                                    }`}>
+                                      {materia.nombre_materia}
+                                    </div>
+                                    <div className={`text-xs ${
+                                      (materia as any).es_electiva ? 'text-orange-600' : 'text-green-600'
+                                    }`}>
+                                      {materia.creditos} Créditos
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))
+                          )}
+                          {provided.placeholder}
+                        </div>
+                      </div>
+                    )}
+                  </Droppable>
+                ))}
+              </div>
+            </DragDropContext>
 
             {/* Información adicional */}
             <div className="mt-8 bg-white rounded-lg p-6 shadow-sm border">
