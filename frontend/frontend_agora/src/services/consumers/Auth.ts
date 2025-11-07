@@ -8,6 +8,12 @@ export const setToken = (token: string) => {
   localStorage.setItem(TOKEN_KEY, token);
 };
 
+// simple validator: por ahora considera válido si existe token (localStorage)
+export const isTokenValid = (token?: string | null): boolean => {
+  const t = token ?? getToken();
+  return !!t;
+};
+
 /** Recupera el access token desde localStorage */
 export const getToken = (): string | null => {
   return localStorage.getItem(TOKEN_KEY);
