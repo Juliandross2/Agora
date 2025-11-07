@@ -37,6 +37,7 @@ class ElectivaRepository:
             electiva = Electiva.objects.create(
                 programa_id=programa,
                 nombre_electiva=data['nombre_electiva'],
+                descripcion=data.get('descripcion', None),
                 es_activa=data.get('es_activa', True)
             )
             return True, electiva, "Electiva creada exitosamente"
@@ -59,6 +60,8 @@ class ElectivaRepository:
             
             if 'nombre_electiva' in data:
                 electiva.nombre_electiva = data['nombre_electiva']
+            if 'descripcion' in data:
+                electiva.descripcion = data.get('descripcion')
             if 'es_activa' in data:
                 electiva.es_activa = data['es_activa']
             
