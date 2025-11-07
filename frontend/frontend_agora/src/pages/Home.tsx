@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import { useActiveSection } from '../DashboardLayout';
-import { useNavigate } from 'react-router-dom';
 import { listarProgramas } from '../services/consumers/ProgramaClient';
 import { obtenerPensumActual, obtenerEstadisticasPensum } from '../services/consumers/PensumClient';
 import type { Programa } from '../services/domain/ProgramaModels';
@@ -9,7 +10,20 @@ import type { PensumEstadisticas } from '../services/domain/PensumModels';
 export default function AgoraDashboard() {
   const { setActiveSection } = useActiveSection();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { enqueueSnackbar } = useSnackbar();
   useEffect(() => { setActiveSection('home'); }, [setActiveSection]);
+
+  // mostrar snackbar enviado desde Login (si existe) y limpiar el state
+  useEffect(() => {
+    const authSnack = (location.state as any)?.authSnack;
+    if (authSnack?.message) {
+      enqueueSnackbar(authSnack.message, { variant: authSnack.variant || 'info' });
+      // reemplazar la entrada de navegación para evitar mostrarlo de nuevo al recargar/volver
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [programs, setPrograms] = useState<Programa[]>([]);
   const [loading, setLoading] = useState(false);
@@ -209,6 +223,7 @@ export default function AgoraDashboard() {
                       .map((p) => (
                         <button key={p} onClick={() => goToPage(p)} className={`px-3 py-1 rounded-md ${p === currentPage ? 'bg-blue-900 text-white' : 'hover:bg-gray-100'}`}>{p}</button>
                       ))}
+
                   </div>
 
                   <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 rounded-md border hover:bg-gray-100 disabled:opacity-50">Siguiente</button>

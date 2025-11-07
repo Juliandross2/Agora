@@ -4,12 +4,14 @@ import { ArrowLeft } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import { obtenerPensumActual, obtenerMateriasPorSemestre } from '../services/consumers/PensumClient';
 import CrearMateriaFormDialog from '../components/CrearMateriaFormDialog';
+import EditarMateriaFormDialog from '../components/EditarMateriaFormDialog';
+import ContextMenu from '../components/ContextMenu';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 import type { Materia as MateriaModel } from '../services/domain/PensumModels';
 import type { PensumProgramaResponse, MateriaPorSemestre } from '../services/domain/PensumModels';
 import { useActiveSection } from '../DashboardLayout';
-import CardSemestreMaterias from '../components/CardSemestreMaterias';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { patchMateria } from '../services/consumers/MateriaClient';
+import { patchMateria, eliminarMateria } from '../services/consumers/MateriaClient';
 
 export default function PensumActual() {
   const { programaId } = useParams();
@@ -18,6 +20,12 @@ export default function PensumActual() {
   const { setActiveSection } = useActiveSection();
 
   const [crearMateriaOpen, setCrearMateriaOpen] = useState(false);
+  const [editarMateriaOpen, setEditarMateriaOpen] = useState(false);
+  const [selectedMateria, setSelectedMateria] = useState<MateriaModel | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; materia: MateriaModel } | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [materiaToDelete, setMateriaToDelete] = useState<MateriaModel | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [pensumData, setPensumData] = useState<PensumProgramaResponse | null>(null);
   const [materiasPorSemestre, setMateriasPorSemestre] = useState<MateriaPorSemestre[]>([]);
@@ -84,7 +92,71 @@ export default function PensumActual() {
     if (pensumId) {
       await loadMaterias(pensumId);
     }
+
+    // reconsultar el pensum para obtener métricas actualizadas (contador de electivas)
+    if (programaId) {
+      try {
+        const updatedPensum = await obtenerPensumActual(parseInt(programaId, 10));
+        setPensumData(updatedPensum);
+      } catch (err) {
+        console.warn('No se pudo actualizar el pensum después de crear materia', err);
+      }
+    }
+
     setCrearMateriaOpen(false);
+  };
+
+  const handleEditarMateriaSuccess = async (updated?: MateriaModel) => {
+    const pensumId = pensumData?.pensum_actual?.pensum_id;
+    if (pensumId) {
+      await loadMaterias(pensumId);
+    }
+    setEditarMateriaOpen(false);
+    setSelectedMateria(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, materia: MateriaModel) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      materia
+    });
+  };
+
+  const handleEditMateria = () => {
+    if (contextMenu) {
+      setSelectedMateria(contextMenu.materia);
+      setEditarMateriaOpen(true);
+    }
+  };
+
+  const handleDeleteMateria = () => {
+    if (contextMenu) {
+      setMateriaToDelete(contextMenu.materia);
+      setConfirmDeleteOpen(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!materiaToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await eliminarMateria(materiaToDelete.materia_id);
+      enqueueSnackbar('Materia eliminada correctamente', { variant: 'success' });
+      const pensumId = pensumData?.pensum_actual?.pensum_id;
+      if (pensumId) {
+        await loadMaterias(pensumId);
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Error al eliminar materia';
+      enqueueSnackbar(msg, { variant: 'error' });
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDeleteOpen(false);
+      setMateriaToDelete(null);
+    }
   };
 
   // Handler para drag and drop
@@ -191,7 +263,7 @@ export default function PensumActual() {
             <button
               onClick={() => setCrearMateriaOpen(true)}
               title="Crear materia"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="px-4 py-4 translate-y-8 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
             >
               + Crear materia
             </button>
@@ -205,6 +277,34 @@ export default function PensumActual() {
         onClose={() => setCrearMateriaOpen(false)}
         pensumId={pensum?.pensum_id ?? null}
         onCreated={handleCrearMateriaSuccess}
+      />
+
+      <EditarMateriaFormDialog
+        isOpen={editarMateriaOpen}
+        onClose={() => setEditarMateriaOpen(false)}
+        materia={selectedMateria}
+        onUpdated={handleEditarMateriaSuccess}
+      />
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onEdit={handleEditMateria}
+          onDelete={handleDeleteMateria}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      <ConfirmDeleteDialog
+        isOpen={confirmDeleteOpen}
+        onCancel={() => {
+          setConfirmDeleteOpen(false);
+          setMateriaToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        loading={deleteLoading}
+        materiaNombre={materiaToDelete?.nombre_materia}
       />
 
       <div className="p-8">
@@ -292,6 +392,7 @@ export default function PensumActual() {
                                     ref={draggableProvided.innerRef}
                                     {...draggableProvided.draggableProps}
                                     {...draggableProvided.dragHandleProps}
+                                    onContextMenu={(e) => handleContextMenu(e, materia)}
                                     className={`border rounded p-3 cursor-move transition-all ${
                                       draggableSnapshot.isDragging 
                                         ? 'shadow-lg transform rotate-2 bg-white border-blue-300' 

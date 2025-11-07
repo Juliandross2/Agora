@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 import { login as authLogin } from '../services/consumers/Auth';
 import type { LoginRequest } from '../services/domain/TokenModels';
 
 export default function Login() {
-  const [email, setEmail] = useState('john.doe@example.com');
-  const [password, setPassword] = useState('MiPassword123!');
+  const { enqueueSnackbar } = useSnackbar();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -23,9 +25,13 @@ export default function Login() {
 
     try {
       await authLogin(payload);
-      navigate('/home');
+      // enviar estado para que Home muestre un snackbar de éxito
+      navigate('/home', { state: { authSnack: { message: 'Inicio de sesión exitoso', variant: 'success' } } });
     } catch (err: any) {
-      setError(err?.message || 'Error en login');
+      const msg = err?.message || 'Credenciales incorrectas';
+      setError(msg);
+      // mostrar snackbar local como feedback inmediato
+      enqueueSnackbar(msg, { variant: 'error' });
     } finally {
       setLoading(false);
     }

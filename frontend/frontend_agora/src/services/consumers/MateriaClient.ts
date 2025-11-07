@@ -106,3 +106,44 @@ export const patchMateria = async (
     `HTTP ${res.status}`;
   throw new Error(errDetail);
 };
+
+export interface EliminarMateriaResponse {
+  message: string;
+}
+
+/**
+ * Elimina (lógica) una materia.
+ * DELETE {{base_url}}/api/materia/{materia_id}/eliminar/
+ */
+export const eliminarMateria = async (materia_id: number): Promise<EliminarMateriaResponse> => {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${MATERIA_BASE_URL}/${materia_id}/eliminar/`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    // respuesta sin JSON
+  }
+
+  if (res.status === 200) {
+    return {
+      message: data?.message || 'Materia marcada como inactiva exitosamente',
+    };
+  }
+
+  const errMsg =
+    data?.error ||
+    data?.detail ||
+    data?.message ||
+    (data && typeof data === 'object' ? JSON.stringify(data) : null) ||
+    `HTTP ${res.status}`;
+
+  throw new Error(errMsg);
+};

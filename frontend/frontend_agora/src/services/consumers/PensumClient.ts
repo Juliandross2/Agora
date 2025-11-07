@@ -65,6 +65,16 @@ export const obtenerMateriasPorSemestre = async (pensum_id: number): Promise<Mat
 
   const response = data as MateriasPensumResponse;
   
+  // Normalizar: si el backend no provee `es_electiva` pero sí `es_obligatoria`,
+  // marcar como electiva cuando `es_obligatoria === false`.
+  response.materias = response.materias.map((m: any) => ({
+    ...m,
+    es_electiva:
+      typeof m.es_electiva === 'boolean'
+        ? m.es_electiva
+        : (typeof m.es_obligatoria === 'boolean' ? !m.es_obligatoria : false),
+  }));
+  
   // Agrupar materias por semestre
   const materiasPorSemestre: MateriaPorSemestre[] = [];
   
