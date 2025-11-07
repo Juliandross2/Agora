@@ -53,9 +53,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col transition-all duration-300 ${
-        isCollapsed ? "w-20" : "w-80"
-      }`}
+      /* animación de ancho y overflow para evitar parpadeos; duración más suave */
+      className={`bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col transition-[width] duration-500 ease-in-out overflow-hidden ${isCollapsed ? "w-28" : "w-80"}`}
       aria-hidden={false}
     >
       <div className="p-4 border-b border-blue-700">
@@ -73,9 +72,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <img
               src="/unicauca_logo.svg"
               alt="Universidad del Cauca"
-              className={`${
-                isCollapsed ? "h-10" : "h-16"
-              } w-auto object-contain`}
+              /* transicion de tamaño y opacidad para que reduzca suavemente */
+              className={`w-auto object-contain transition-all duration-500 ${isCollapsed ? "h-10 opacity-80" : "h-16 opacity-100"}`}
             />
 
             {/* separador blanco vertical visible solo cuando no está colapsado */}
@@ -83,11 +81,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="h-10 w-px bg-white/50" aria-hidden="true" />
             )}
 
-            {!isCollapsed && (
-              <div className="text-lg font-bold text-white leading-none select-none">
-                Sistema AGORA
-              </div>
-            )}
+            {/* animación de texto: usamos max-w + opacity para transición suave */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isCollapsed ? "max-w-0 opacity-0" : "max-w-[220px] opacity-100"
+              }`}
+              aria-hidden={isCollapsed}
+            >
+              {!isCollapsed && (
+                <div className="text-lg font-bold text-white leading-none select-none">
+                  Sistema AGORA
+                </div>
+              )}
+            </div>
           </a>
         </div>
       </div>
@@ -98,32 +104,24 @@ const Sidebar: React.FC<SidebarProps> = ({
             <User size={isCollapsed ? 18 : 32} />
           </div>
 
-          {!isCollapsed ? (
-            <div className="flex-1">
-              {/* mostrar nombre desde perfil si está disponible */}
-              <h3 className="text-lg font-semibold">
-                {profileLoading
-                  ? "Cargando..."
-                  : profile?.nombre_usuario ?? "Carlos Ardila"}
-              </h3>
-              <p className="text-blue-200 text-sm">
-                {profile ? profile.email_usuario : "Coordinador de electivas"}
-              </p>
-            </div>
-          ) : null}
+          {/* info de usuario con animación de opacidad y max-width */}
+          <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-0 opacity-0" : "max-w-full opacity-100"}`}>
+            {/* mostrar nombre desde perfil si está disponible */}
+            <h3 className="text-lg font-semibold">
+              {profileLoading ? "Cargando..." : profile?.nombre_usuario ?? "Carlos Ardila"}
+            </h3>
+            <p className="text-blue-200 text-sm">
+              {profile ? profile.email_usuario : "Coordinador de electivas"}
+            </p>
+          </div>
 
           <button
             onClick={onToggle}
-            className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center hover:bg-blue-700 transition"
+            className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center hover:bg-blue-700 transition-transform duration-300"
             aria-label={isCollapsed ? "Expandir sidebar" : "Minimizar sidebar"}
             title={isCollapsed ? "Expandir" : "Minimizar"}
           >
-            <ArrowLeft
-              size={18}
-              className={`${
-                isCollapsed ? "rotate-180" : ""
-              } transition-transform`}
-            />
+            <ArrowLeft size={18} className={`transition-transform duration-300 ${isCollapsed ? "rotate-180" : "rotate-0"}`} />
           </button>
         </div>
       </div>
@@ -134,16 +132,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             setActiveSection("home");
             navigate('/home');
           }}
-          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
+          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
             activeSection === "home" ? "bg-blue-700" : "hover:bg-blue-700"
           }`}
         >
           <HomeIcon size={20} />
-          <span
-            className={`${
-              isCollapsed ? "hidden" : "block"
-            } text-lg font-medium`}
-          >
+          <span className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
             Home
           </span>
         </button>
@@ -153,16 +147,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             setActiveSection("programas");
             navigate("/gestion-programas");
           }}
-          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
+          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
             activeSection === "programas" ? "bg-blue-700" : "hover:bg-blue-700"
           }`}
         >
           <BookOpen size={20} />
-          <span
-            className={`${
-              isCollapsed ? "hidden" : "block"
-            } text-lg font-medium`}
-          >
+          <span className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
             Programas
           </span>
         </button>
@@ -172,19 +162,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             setActiveSection("comparacion");
             navigate("/comparacion");
           }}
-          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
-            activeSection === "comparacion"
-              ? "bg-blue-700"
-              : "hover:bg-blue-700"
+          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
+            activeSection === "comparacion" ? "bg-blue-700" : "hover:bg-blue-700"
           }`}
         >
           <Users size={20} />
-          <span
-            className={`${
-              isCollapsed ? "hidden" : "block"
-            } text-lg font-medium`}
-          >
-            Comparación pensum
+          <span className={`overflow-hidden text-start transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
+            Comparación de pensum
           </span>
         </button>
 
@@ -193,18 +177,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             setActiveSection("configuracion");
             navigate("/config"); // navegar a la ruta de configuración
           }}
-          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition ${
-            activeSection === "configuracion"
-              ? "bg-blue-700"
-              : "hover:bg-blue-700"
+          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
+            activeSection === "configuracion" ? "bg-blue-700" : "hover:bg-blue-700"
           }`}
         >
           <Settings size={20} />
-          <span
-            className={`${
-              isCollapsed ? "hidden" : "block"
-            } text-lg font-medium`}
-          >
+          <span className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
             Configuración
           </span>
         </button>
@@ -222,9 +200,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           title="Cerrar sesión"
         >
           <LogOut size={18} />
-          {!isCollapsed && (
-            <span className="ml-2 text-sm font-medium">Cerrar sesión</span>
-          )}
+          <span className={`ml-2 text-sm font-medium overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[120px] opacity-100"}`}>
+            {!isCollapsed && "Cerrar sesión"}
+          </span>
         </button>
       </div>
     </aside>
