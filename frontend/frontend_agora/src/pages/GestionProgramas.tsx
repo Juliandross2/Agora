@@ -147,6 +147,7 @@ export default function GestionProgramas() {
   // Navegar a gestión de electivas. Si se pasa programaId se filtra por ese programa.
   const handleGestionElectivas = (programaId?: number) => {
     if (typeof programaId === 'number') {
+      console.log("Navegando hacia gestion electivas con programaID", programaId);
       navigate(`/gestion-electivas?programaId=${programaId}`);
     } else {
       navigate('/gestion-electivas');
