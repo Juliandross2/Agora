@@ -76,4 +76,7 @@ urlpatterns = [
     path('api/pensum/<int:pensum_id>/eliminar/', eliminar_pensum, name='pensum_delete'),
     path('api/pensum/<int:pensum_id>/estadisticas/', obtener_estadisticas_pensum, name='pensum_estadisticas'),
     path('api/pensum/resumen-credito/<int:programa_id>/', obtener_resumen_creditos, name='pensum_resumen_creditos'),
+    
+    path("admin/", admin.site.urls),
+    path("historias/", include("historias.urls")), 
 ]
