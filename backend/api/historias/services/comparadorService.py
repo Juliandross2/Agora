@@ -1,5 +1,5 @@
 import pandas as pd
-from .config import CONFIG
+from ..config.config import CONFIG
 
 def comparar_estudiante(historia, pensum):
     semestre_limite = CONFIG["semestre_limite_electivas"]
