@@ -7,7 +7,75 @@ class PensumService:
     def __init__(self):
         self.repo = PensumRepository()
 
+    def obtener_pensums_por_programa(self, programa_id):
+        """Obtener todos los pensums de un programa específico"""
+        try:
+            int(programa_id)
+        except (TypeError, ValueError):
+            return False, {'error': 'programa_id inválido'}
+        
+        # Verificar que el programa existe
+        try:
+            programa = Programa.objects.get(pk=programa_id)
+        except Programa.DoesNotExist:
+            return False, {'error': 'Programa no encontrado'}
+        
+        pensums = self.repo.get_by_programa(programa_id)
+        data = PensumSerializer(pensums, many=True).data
+        return True, {
+            'programa_id': programa_id,
+            'programa_nombre': programa.nombre_programa,
+            'pensums': data,
+            'total': len(data)
+        }
+
+    def obtener_pensums_activos_por_programa(self, programa_id):
+        """Obtener pensums activos de un programa específico"""
+        try:
+            int(programa_id)
+        except (TypeError, ValueError):
+            return False, {'error': 'programa_id inválido'}
+        
+        # Verificar que el programa existe
+        try:
+            programa = Programa.objects.get(pk=programa_id)
+        except Programa.DoesNotExist:
+            return False, {'error': 'Programa no encontrado'}
+        
+        pensums = self.repo.get_active_by_programa(programa_id)
+        data = PensumSerializer(pensums, many=True).data
+        return True, {
+            'programa_id': programa_id,
+            'programa_nombre': programa.nombre_programa,
+            'pensums_activos': data,
+            'total': len(data)
+        }
+
+    def obtener_pensum_actual_por_programa(self, programa_id):
+        """Obtener el pensum actual (activo) de un programa"""
+        try:
+            int(programa_id)
+        except (TypeError, ValueError):
+            return False, {'error': 'programa_id inválido'}
+        
+        # Verificar que el programa existe
+        try:
+            programa = Programa.objects.get(pk=programa_id)
+        except Programa.DoesNotExist:
+            return False, {'error': 'Programa no encontrado'}
+        
+        pensum_actual = self.repo.get_current_by_programa(programa_id)
+        if not pensum_actual:
+            return False, {'error': f'No hay pensum activo para el programa {programa.nombre_programa}'}
+        
+        return True, {
+            'programa_id': programa_id,
+            'programa_nombre': programa.nombre_programa,
+            'pensum_actual': PensumDetailSerializer(pensum_actual).data
+        }
+
     def obtener_todos_pensums(self):
+        """DEPRECATED: Usar obtener_pensums_por_programa en su lugar"""
         objs = self.repo.get_all()
         data = PensumSerializer(objs, many=True).data
         return True, data
@@ -26,11 +94,13 @@ class PensumService:
         
         estadisticas = {
             'pensum_id': obj.pensum_id,
+            'programa_id': obj.programa_id.programa_id,
             'programa_nombre': obj.programa_id.nombre_programa if obj.programa_id else 'N/A',
             'anio_creacion': obj.anio_creacion,
             'creditos_obligatorios_totales': obj.creditos_obligatorios_totales,
             'total_materias_obligatorias': obj.total_materias_obligatorias,
             'total_materias_electivas': obj.total_materias_electivas,
+            'total_creditos_electivas': obj.total_creditos_electivas,
             'total_materias': obj.total_materias_obligatorias + obj.total_materias_electivas,
             'es_activo': obj.es_activo
         }
@@ -46,8 +116,18 @@ class PensumService:
         anio = data.get('anio_creacion', None)
         es_activo = data.get('es_activo', True)
 
+        # Verificar si ya existe un pensum activo para este programa
+        if es_activo and self.repo.get_current_by_programa(programa_id):
+            return False, {
+                'error': f'Ya existe un pensum activo para el programa {programa.nombre_programa}. Solo puede haber un pensum activo por programa.',
+                'suggestion': 'Desactive el pensum actual antes de crear uno nuevo activo, o cree este pensum como inactivo.'
+            }
+
         pensum = self.repo.create(programa, anio_creacion=anio, es_activo=es_activo)
-        return True, PensumDetailSerializer(pensum).data
+        return True, {
+            'message': f'Pensum creado exitosamente para el programa {programa.nombre_programa}',
+            'pensum': PensumDetailSerializer(pensum).data
+        }
 
     def actualizar_pensum(self, pensum_id, data):
         pensum = self.repo.get_by_id(pensum_id)
@@ -61,34 +141,45 @@ class PensumService:
                 update_fields['programa_id'] = programa
             except (TypeError, ValueError, Programa.DoesNotExist):
                 return False, {'error': 'Programa inválido o no encontrado'}
+        
         if 'anio_creacion' in data:
             update_fields['anio_creacion'] = data.get('anio_creacion')
+        
         if 'es_activo' in data:
-            update_fields['es_activo'] = data.get('es_activo')
+            es_activo = data.get('es_activo')
+            # Si se está intentando activar este pensum
+            if es_activo and not pensum.es_activo:
+                # Verificar que no haya otro pensum activo en el mismo programa
+                current_programa_id = update_fields.get('programa_id', pensum.programa_id).programa_id
+                if self.repo.validate_unique_active_per_programa(current_programa_id, pensum_id):
+                    return False, {
+                        'error': 'Ya existe un pensum activo para este programa. Solo puede haber un pensum activo por programa.',
+                        'suggestion': 'Desactive el pensum actual antes de activar este.'
+                    }
+            update_fields['es_activo'] = es_activo
 
         pensum = self.repo.update(pensum, **update_fields)
-        return True, PensumDetailSerializer(pensum).data
+        return True, {
+            'message': 'Pensum actualizado exitosamente',
+            'pensum': PensumDetailSerializer(pensum).data
+        }
 
     def eliminar_pensum(self, pensum_id):
         pensum = self.repo.get_by_id(pensum_id)
         if not pensum:
             return False, {'error': 'Pensum no encontrado'}
         self.repo.delete(pensum)
-        return True, {'message': 'Pensum eliminado correctamente'}
+        return True, {'message': 'Pensum eliminado (desactivado) correctamente'}
 
     def obtener_pensums_activos(self):
+        """DEPRECATED: Usar obtener_pensums_activos_por_programa en su lugar"""
         objs = self.repo.get_active()
         data = PensumSerializer(objs, many=True).data
         return True, data
 
     def buscar_pensums_por_programa(self, programa_id):
-        try:
-            int(programa_id)
-        except (TypeError, ValueError):
-            return False, {'error': 'programa_id inválido'}
-        objs = self.repo.filter_by_programa(programa_id)
-        data = PensumSerializer(objs, many=True).data
-        return True, data
+        """Alias para mantener compatibilidad"""
+        return self.obtener_pensums_por_programa(programa_id)
 
     def obtener_resumen_creditos_por_programa(self, programa_id):
         """Obtiene un resumen de créditos de todos los pensums de un programa"""
@@ -96,6 +187,12 @@ class PensumService:
             int(programa_id)
         except (TypeError, ValueError):
             return False, {'error': 'programa_id inválido'}
+        
+        # Verificar que el programa existe
+        try:
+            programa = Programa.objects.get(pk=programa_id)
+        except Programa.DoesNotExist:
+            return False, {'error': 'Programa no encontrado'}
             
         pensums = self.repo.filter_by_programa(programa_id)
         resumen = []
@@ -105,9 +202,16 @@ class PensumService:
                 'pensum_id': pensum.pensum_id,
                 'anio_creacion': pensum.anio_creacion,
                 'creditos_obligatorios': pensum.creditos_obligatorios_totales,
+                'creditos_electivas': pensum.total_creditos_electivas,
                 'materias_obligatorias': pensum.total_materias_obligatorias,
                 'materias_electivas': pensum.total_materias_electivas,
+                'total_materias': pensum.total_materias_obligatorias + pensum.total_materias_electivas,
                 'es_activo': pensum.es_activo
             })
         
-        return True, resumen
+        return True, {
+            'programa_id': programa_id,
+            'programa_nombre': programa.nombre_programa,
+            'resumen_pensums': resumen,
+            'total_pensums': len(resumen)
+        }

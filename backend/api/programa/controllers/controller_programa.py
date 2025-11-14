@@ -61,7 +61,7 @@ def obtener_programa(request, programa_id):
 
 @extend_schema(tags=['Programa - Admin'], summary="Crear nuevo programa")
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+@permission_classes([AllowAny])
 def crear_programa(request):
     """
     Crear nuevo programa
@@ -93,7 +93,7 @@ def crear_programa(request):
 
 @extend_schema(tags=['Programa - Admin'], summary="Actualizar programa existente")
 @api_view(['PUT'])
-@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+@permission_classes([AllowAny])  
 def actualizar_programa(request, programa_id):
     """
     Actualizar programa existente
@@ -125,7 +125,7 @@ def actualizar_programa(request, programa_id):
 
 @extend_schema(tags=['Programa - Admin'], summary="Eliminar programa")
 @api_view(['DELETE'])
-@permission_classes([AllowAny])  # Cambiar a IsAuthenticated si requiere autenticación
+@permission_classes([AllowAny])
 def eliminar_programa(request, programa_id):
     """
     Eliminar programa
