@@ -18,6 +18,7 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         '/api/docs/swagger/',
         '/api/schema/',
         '/api/docs/redoc/',
+        '/api/historias/',  # Permitir acceso a endpoints de historias
     ]
     
     def process_request(self, request):
