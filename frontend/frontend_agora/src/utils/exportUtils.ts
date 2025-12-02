@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import type { ComparacionEstudiante } from '../services/consumers/ComparacionClient';
 
 interface EstudianteResumen {
   id: string;
@@ -722,5 +723,639 @@ export const exportDetalleToExcel = (estudiante: EstudianteDetalle): void => {
 
   // Guardar archivo
   const filename = `reporte_${estudiante.nombre.replace(/\s+/g, '_')}_${estudiante.id}.xlsx`;
+  XLSX.writeFile(wb, filename);
+};
+
+/**
+ * Exporta el detalle de comparación de un estudiante a PDF (vía impresión)
+ */
+export const exportComparacionDetalleToPDF = (estudiante: ComparacionEstudiante): void => {
+  const esApto = estudiante.estado === 1;
+  const materiasAprobadas = estudiante.creditos_aprobados;
+  const materiasNoCursadas = estudiante.materias_faltantes_hasta_semestre_limite.length;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Reporte Detallado - Estudiante ${estudiante.estudiante}</title>
+      <style>
+        @media print {
+          @page { margin: 1cm; size: A4; }
+          body { margin: 0; }
+        }
+        
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.4;
+          color: #333;
+          max-width: 210mm;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        
+        .header {
+          background: #1e3a8a;
+          color: white;
+          text-align: center;
+          padding: 20px;
+          margin: -20px -20px 10px -20px;
+        }
+        
+        .sub-header {
+          background: #60a5fa;
+          color: white;
+          text-align: center;
+          padding: 15px;
+          margin: 0 -20px 20px -20px;
+        }
+        
+        .header h1 {
+          margin: 0 0 5px 0;
+          font-size: 18px;
+        }
+        
+        .sub-header h2 {
+          margin: 0 0 5px 0;
+          font-size: 16px;
+        }
+        
+        .sub-header h3 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: normal;
+        }
+        
+        .student-info {
+          background: #f3f4f6;
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+        
+        .student-info div {
+          font-size: 14px;
+        }
+        
+        .materias-section {
+          background: white;
+          border: 1px solid #e5e7eb;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+        
+        .materias-section h3 {
+          color: #1e3a8a;
+          margin-top: 0;
+          margin-bottom: 15px;
+        }
+        
+        .materia-item {
+          display: flex;
+          align-items: center;
+          padding: 12px;
+          margin-bottom: 8px;
+          border-radius: 6px;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+        }
+        
+        .materia-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #dc2626;
+          margin-right: 12px;
+        }
+        
+        .resumen {
+          background: #f3f4f6;
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+        
+        .resumen h3 {
+          color: #1e3a8a;
+          margin-top: 0;
+          margin-bottom: 10px;
+        }
+        
+        .resumen-item {
+          margin-bottom: 5px;
+          font-size: 14px;
+        }
+        
+        .resultado {
+          text-align: center;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          color: white;
+          font-weight: bold;
+        }
+        
+        .resultado-apto {
+          background: #16a34a;
+        }
+        
+        .resultado-no-apto {
+          background: #dc2626;
+        }
+        
+        .footer {
+          margin-top: 30px;
+          padding-top: 15px;
+          border-top: 2px solid #1e3a8a;
+          font-size: 11px;
+          color: #6b7280;
+          text-align: center;
+        }
+        
+        .no-print {
+          display: block;
+        }
+        
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Sistema AGORA - Universidad del Cauca</h1>
+      </div>
+      
+      <div class="sub-header">
+        <h2>Comparación de Pensum</h2>
+        <h3>Estudiante ${estudiante.estudiante}</h3>
+      </div>
+      
+      <div class="student-info">
+        <div><strong>Código:</strong> ${estudiante.estudiante}</div>
+        <div><strong>Semestre máximo:</strong> ${estudiante.semestre_maximo}</div>
+        <div><strong>Créditos aprobados:</strong> ${estudiante.creditos_aprobados}/${estudiante.creditos_obligatorios_totales}</div>
+        <div><strong>Períodos matriculados:</strong> ${estudiante.periodos_matriculados}</div>
+        <div><strong>Avance:</strong> ${estudiante.porcentaje_avance.toFixed(1)}%</div>
+        <div><strong>Nivelado:</strong> ${estudiante.nivelado ? 'Sí' : 'No'}</div>
+      </div>
+      
+      ${estudiante.materias_faltantes_hasta_semestre_limite.length > 0 ? `
+        <div class="materias-section">
+          <h3>Materias Faltantes hasta Semestre ${estudiante.semestre_maximo}:</h3>
+          ${estudiante.materias_faltantes_hasta_semestre_limite.map(materia => `
+            <div class="materia-item">
+              <div class="materia-dot"></div>
+              <span style="text-transform: capitalize;">${materia}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      <div class="resumen">
+        <h3>Resumen:</h3>
+        <div class="resumen-item" style="color: #16a34a;">
+          ✓ Créditos aprobados: ${estudiante.creditos_aprobados}
+        </div>
+        <div class="resumen-item" style="color: #dc2626;">
+          ✗ Materias faltantes: ${estudiante.materias_faltantes_hasta_semestre_limite.length}
+        </div>
+        <div class="resumen-item" style="color: #6b7280;">
+          • Porcentaje de avance: ${estudiante.porcentaje_avance.toFixed(1)}%
+        </div>
+      </div>
+      
+      <div class="resultado ${esApto ? 'resultado-apto' : 'resultado-no-apto'}">
+        <div style="font-size: 14px; margin-bottom: 5px;">RESULTADO:</div>
+        <div style="font-size: 18px;">
+          El estudiante ${esApto ? 'SÍ es apto' : 'NO es apto'} para electivas
+        </div>
+      </div>
+      
+      <div class="footer">
+        <p>Generado el ${new Date().toLocaleDateString('es-CO', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}</p>
+      </div>
+      
+      <div class="no-print" style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+        <button onclick="window.print()" style="
+          background: #1e3a8a; 
+          color: white; 
+          border: none; 
+          padding: 10px 20px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;
+        ">
+          Guardar como PDF
+        </button>
+        <button onclick="window.close()" style="
+          background: #6b7280; 
+          color: white; 
+          border: none; 
+          padding: 10px 20px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;
+          margin-left: 10px;
+        ">
+          Cerrar
+        </button>
+      </div>
+      
+      <script>
+        window.addEventListener('load', function() {
+          setTimeout(() => {
+            window.print();
+          }, 500);
+        });
+      </script>
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  }
+};
+
+/**
+ * Exporta el detalle de comparación de un estudiante a Excel
+ */
+export const exportComparacionDetalleToExcel = (estudiante: ComparacionEstudiante): void => {
+  const esApto = estudiante.estado === 1;
+
+  const wb = XLSX.utils.book_new();
+
+  // Información del estudiante y resumen
+  const infoData = [
+    ['REPORTE DE COMPARACIÓN DE PENSUM'],
+    ['Sistema AGORA - Universidad del Cauca'],
+    [''],
+    ['INFORMACIÓN DEL ESTUDIANTE'],
+    ['Código', estudiante.estudiante],
+    ['Semestre máximo', estudiante.semestre_maximo],
+    ['Créditos aprobados', `${estudiante.creditos_aprobados}/${estudiante.creditos_obligatorios_totales}`],
+    ['Períodos matriculados', estudiante.periodos_matriculados],
+    ['Porcentaje de avance', `${estudiante.porcentaje_avance.toFixed(1)}%`],
+    ['Nivelado', estudiante.nivelado ? 'Sí' : 'No'],
+    [''],
+    ['RESUMEN'],
+    ['Créditos aprobados', estudiante.creditos_aprobados],
+    ['Materias faltantes', estudiante.materias_faltantes_hasta_semestre_limite.length],
+    ['Porcentaje de avance', `${estudiante.porcentaje_avance.toFixed(1)}%`],
+    [''],
+    ['RESULTADO FINAL', esApto ? 'APTO PARA ELECTIVAS' : 'NO APTO PARA ELECTIVAS'],
+    [''],
+    ['Fecha de generación', new Date().toLocaleDateString('es-CO')],
+  ];
+
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{ width: 25 }, { width: 30 }];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'Información');
+
+  // Hoja de materias faltantes
+  if (estudiante.materias_faltantes_hasta_semestre_limite.length > 0) {
+    const materiasData = [
+      [`MATERIAS FALTANTES HASTA SEMESTRE ${estudiante.semestre_maximo}`],
+      [''],
+      ['#', 'Materia'],
+      ...estudiante.materias_faltantes_hasta_semestre_limite.map((materia, idx) => [
+        idx + 1,
+        materia
+      ])
+    ];
+
+    const wsMaterias = XLSX.utils.aoa_to_sheet(materiasData);
+    wsMaterias['!cols'] = [
+      { width: 5 },
+      { width: 40 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsMaterias, 'Materias Faltantes');
+  }
+
+  // Guardar archivo
+  const filename = `comparacion_${estudiante.estudiante}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(wb, filename);
+};
+
+/**
+ * Exporta el resumen de comparación masiva a PDF
+ */
+export const exportComparacionResumenToPDF = (estudiantes: ComparacionEstudiante[]): void => {
+  const totalEstudiantes = estudiantes.length;
+  const aptos = estudiantes.filter(e => e.estado === 1).length;
+  const noAptos = estudiantes.filter(e => e.estado === 0).length;
+  const porcentajeAptos = totalEstudiantes > 0 ? ((aptos / totalEstudiantes) * 100).toFixed(1) : '0';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Resumen de Comparación - Sistema AGORA</title>
+      <style>
+        @media print {
+          @page { margin: 1cm; size: A4; }
+          body { margin: 0; }
+        }
+        
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.4;
+          color: #333;
+          max-width: 210mm;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        
+        .header {
+          background: #1e3a8a;
+          color: white;
+          text-align: center;
+          padding: 20px;
+          margin: -20px -20px 20px -20px;
+        }
+        
+        .header h1 {
+          margin: 0 0 5px 0;
+          font-size: 18px;
+        }
+        
+        .header h2 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: normal;
+        }
+        
+        .stats-section {
+          background: #f3f4f6;
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+        }
+        
+        .stats-section h3 {
+          color: #1e3a8a;
+          margin-top: 0;
+          margin-bottom: 15px;
+        }
+        
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 10px;
+        }
+        
+        .stat-item {
+          padding: 8px;
+          background: white;
+          border-radius: 4px;
+          border-left: 4px solid #1e3a8a;
+        }
+        
+        .table-container {
+          margin-top: 20px;
+          overflow-x: auto;
+        }
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+        }
+        
+        th {
+          background: #1e3a8a;
+          color: white;
+          padding: 12px 8px;
+          text-align: left;
+          font-weight: bold;
+        }
+        
+        td {
+          padding: 10px 8px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        
+        .status-apto {
+          color: #16a34a;
+          font-weight: bold;
+        }
+        
+        .status-no-apto {
+          color: #dc2626;
+          font-weight: bold;
+        }
+        
+        .footer {
+          margin-top: 30px;
+          padding-top: 15px;
+          border-top: 2px solid #1e3a8a;
+          font-size: 11px;
+          color: #6b7280;
+          text-align: center;
+        }
+        
+        .no-print {
+          display: block;
+        }
+        
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Sistema AGORA - Universidad del Cauca</h1>
+        <h2>Resumen de Comparación de Pensum</h2>
+      </div>
+      
+      <div class="stats-section">
+        <h3>Resumen General</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <strong>Total evaluados:</strong> ${totalEstudiantes}
+          </div>
+          <div class="stat-item">
+            <strong>Estudiantes aptos:</strong> ${aptos} (${porcentajeAptos}%)
+          </div>
+          <div class="stat-item">
+            <strong>Estudiantes no aptos:</strong> ${noAptos} (${(100 - parseFloat(porcentajeAptos)).toFixed(1)}%)
+          </div>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <h3 style="color: #1e3a8a; margin-bottom: 15px;">Detalle por Estudiante</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Semestre</th>
+              <th>Créditos</th>
+              <th>Avance</th>
+              <th>Estado</th>
+              <th>Materias Faltantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${estudiantes.map(est => `
+              <tr>
+                <td>${est.estudiante}</td>
+                <td>${est.semestre_maximo}</td>
+                <td>${est.creditos_aprobados}/${est.creditos_obligatorios_totales}</td>
+                <td>${est.porcentaje_avance.toFixed(1)}%</td>
+                <td class="${est.estado === 1 ? 'status-apto' : 'status-no-apto'}">
+                  ${est.estado === 1 ? 'APTO' : 'NO APTO'}
+                </td>
+                <td>${est.materias_faltantes_hasta_semestre_limite.length}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="footer">
+        <p>Generado el ${new Date().toLocaleDateString('es-CO', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}</p>
+      </div>
+      
+      <div class="no-print" style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+        <button onclick="window.print()" style="
+          background: #1e3a8a; 
+          color: white; 
+          border: none; 
+          padding: 10px 20px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;
+        ">
+          Guardar como PDF
+        </button>
+        <button onclick="window.close()" style="
+          background: #6b7280; 
+          color: white; 
+          border: none; 
+          padding: 10px 20px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;
+          margin-left: 10px;
+        ">
+          Cerrar
+        </button>
+      </div>
+      
+      <script>
+        window.addEventListener('load', function() {
+          setTimeout(() => {
+            window.print();
+          }, 500);
+        });
+      </script>
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  }
+};
+
+/**
+ * Exporta el resumen de comparación masiva a Excel
+ */
+export const exportComparacionResumenToExcel = (estudiantes: ComparacionEstudiante[]): void => {
+  const totalEstudiantes = estudiantes.length;
+  const aptos = estudiantes.filter(e => e.estado === 1).length;
+  const noAptos = estudiantes.filter(e => e.estado === 0).length;
+  const porcentajeAptos = totalEstudiantes > 0 ? ((aptos / totalEstudiantes) * 100).toFixed(1) : '0';
+
+  const wb = XLSX.utils.book_new();
+
+  // Hoja de resumen estadístico
+  const resumenData = [
+    ['RESUMEN DE COMPARACIÓN DE PENSUM'],
+    ['Sistema AGORA - Universidad del Cauca'],
+    [''],
+    ['RESUMEN ESTADÍSTICO'],
+    ['Total evaluados', totalEstudiantes],
+    ['Estudiantes aptos', `${aptos} (${porcentajeAptos}%)`],
+    ['Estudiantes no aptos', `${noAptos} (${(100 - parseFloat(porcentajeAptos)).toFixed(1)}%)`],
+    [''],
+    ['Fecha de generación', new Date().toLocaleDateString('es-CO')],
+  ];
+
+  const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+  wsResumen['!cols'] = [{ width: 25 }, { width: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+  // Hoja de detalle de estudiantes
+  const estudiantesData = [
+    ['DETALLE DE ESTUDIANTES'],
+    [''],
+    ['Código', 'Semestre', 'Créditos Aprobados', 'Total Créditos', 'Avance (%)', 'Períodos', 'Nivelado', 'Estado', 'Materias Faltantes'],
+    ...estudiantes.map(est => [
+      est.estudiante,
+      est.semestre_maximo,
+      est.creditos_aprobados,
+      est.creditos_obligatorios_totales,
+      est.porcentaje_avance.toFixed(1),
+      est.periodos_matriculados,
+      est.nivelado ? 'Sí' : 'No',
+      est.estado === 1 ? 'APTO' : 'NO APTO',
+      est.materias_faltantes_hasta_semestre_limite.length
+    ])
+  ];
+
+  const wsEstudiantes = XLSX.utils.aoa_to_sheet(estudiantesData);
+  wsEstudiantes['!cols'] = [
+    { width: 12 },
+    { width: 10 },
+    { width: 16 },
+    { width: 14 },
+    { width: 12 },
+    { width: 10 },
+    { width: 10 },
+    { width: 12 },
+    { width: 16 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsEstudiantes, 'Estudiantes');
+
+  // Guardar archivo
+  const filename = `resumen_comparacion_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, filename);
 };
