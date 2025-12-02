@@ -103,6 +103,9 @@ urlpatterns = [
     # historias / comparador
     path('api/historias/', include('api.historias.urls')),
     
+    # configuración de elegibilidad
+    path('api/configuracion/', include('api.configuracion.urls')),
+    
     path("admin/", admin.site.urls),
     
     # materia
