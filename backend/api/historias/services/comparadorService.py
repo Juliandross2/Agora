@@ -57,6 +57,28 @@ def obtener_pensum_desde_bd(programa_id):
     return df
 
 
+def _roman_to_int(roman):
+    """
+    Convierte números romanos a enteros.
+    Soporta: I, II, III, IV, V, VI, VII, VIII, IX, X
+    """
+    roman_values = {
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5,
+        'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10
+    }
+    return roman_values.get(roman.upper(), 0)
+
+def _int_to_roman(num):
+    """
+    Convierte enteros a números romanos.
+    Soporta: 1-10
+    """
+    int_to_roman_map = {
+        1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
+        6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X'
+    }
+    return int_to_roman_map.get(num, str(num))
+
 def _normalize_text(s):
     """Normaliza textos: elimina acentos, convierte a MAYÚSCULAS y hace strip."""
     if pd.isna(s):
@@ -70,7 +92,8 @@ def _normalize_text(s):
 
 def _es_fish(materia_nombre):
     """
-    Verifica si una materia es una FISH (comienza con 'fish' seguido de espacio y número).
+    Verifica si una materia es una FISH (comienza con 'FISH' seguido de número arábigo o romano).
+    Ejemplos válidos: FISH 1, FISH 2, FISH I, FISH II, FISH III
     
     Args:
         materia_nombre: Nombre normalizado de la materia
@@ -78,8 +101,39 @@ def _es_fish(materia_nombre):
     Returns:
         True si es una FISH, False en caso contrario
     """
-    patron = r'^FISH\s*\d+$'
-    return bool(re.match(patron, materia_nombre.strip()))
+    # Patrón para números arábigos: FISH 1, FISH 2, etc.
+    patron_arabigo = r'^FISH\s*\d+$'
+    # Patrón para números romanos: FISH I, FISH II, FISH III, etc.
+    patron_romano = r'^FISH\s*[IVX]+$'
+    
+    materia = materia_nombre.strip()
+    return bool(re.match(patron_arabigo, materia) or re.match(patron_romano, materia))
+
+
+def _extraer_numero_fish(materia_nombre):
+    """
+    Extrae el número (como entero) de una materia FISH.
+    Soporta números arábigos y romanos.
+    
+    Args:
+        materia_nombre: Nombre normalizado de la materia FISH (ej: "FISH 1", "FISH I")
+    
+    Returns:
+        Número entero, o 0 si no se puede extraer
+    """
+    materia = materia_nombre.strip()
+    
+    # Intentar extraer número arábigo
+    match_arabigo = re.search(r'\d+', materia)
+    if match_arabigo:
+        return int(match_arabigo.group())
+    
+    # Intentar extraer número romano
+    match_romano = re.search(r'[IVX]+$', materia)
+    if match_romano:
+        return _roman_to_int(match_romano.group())
+    
+    return 0
 
 
 def _es_electiva_fish(materia_nombre):
@@ -170,20 +224,22 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
         if _es_fish(materia):
             fish_en_pensum.append(materia)
     
-    print(f"\n FISH en pensum: {len(fish_en_pensum)}")
+    print(f"\nprint FISH en pensum (hasta semestre {semestre_limite}): {len(fish_en_pensum)}")
     print(f"   {fish_en_pensum}")
     
-    # Ordenar las FISH por número (fish 1, fish 2, fish 3, etc.)
-    fish_en_pensum_ordenadas = sorted(fish_en_pensum, key=lambda x: int(re.search(r'\d+', x).group()) if re.search(r'\d+', x) else 0)
+    # Ordenar las FISH por número (soporta arábigos y romanos)
+    fish_en_pensum_ordenadas = sorted(fish_en_pensum, key=_extraer_numero_fish)
+    
+    print(f"print FISH ordenadas: {fish_en_pensum_ordenadas}")
     
     # Marcar como aprobadas las primeras N FISH según las electivas fish que tenga el estudiante
     fish_aprobadas = fish_en_pensum_ordenadas[:num_electivas_fish]
-    print(f"\n FISH marcadas como aprobadas: {len(fish_aprobadas)}")
+    print(f"\nprint FISH marcadas como aprobadas (basado en {num_electivas_fish} Electivas FISH): {len(fish_aprobadas)}")
     print(f"   {fish_aprobadas}")
     
     # Agregar las FISH aprobadas a la lista de materias aprobadas
     aprobadas_con_fish = aprobadas + fish_aprobadas
-    print(f"\n TOTAL aprobadas (con FISH): {len(aprobadas_con_fish)} materias")
+    print(f"\nprint TOTAL aprobadas (con FISH): {len(aprobadas_con_fish)} materias")
 
     # Semestre máximo cursado (asegurar entero)
     try:
