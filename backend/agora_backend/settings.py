@@ -207,5 +207,6 @@ SPECTACULAR_SETTINGS = {
         {'name': 'usuario', 'description': 'Operaciones relacionadas con usuarios (login, register, profile)'},
         {'name': 'programa', 'description': 'Operaciones relacionadas con programas'},
         {'name': 'oferta-electiva', 'description': 'Operaciones relacionadas con ofertas de electiva'},
+        {'name': 'comparador-estudiantes', 'description': 'Operaciones para verificar elegibilidad de estudiantes para electivas'},
     ],
 }

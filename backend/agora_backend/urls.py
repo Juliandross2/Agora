@@ -98,6 +98,15 @@ urlpatterns = [
     path('api/pensum/<int:pensum_id>/actualizar/', actualizar_pensum, name='pensum_update'),
     path('api/pensum/<int:pensum_id>/eliminar/', eliminar_pensum, name='pensum_delete'),
     path('api/pensum/<int:pensum_id>/estadisticas/', obtener_estadisticas_pensum, name='pensum_estadisticas'),
+    path('api/pensum/resumen-credito/<int:programa_id>/', obtener_resumen_creditos, name='pensum_resumen_creditos'),
+    
+    # historias / comparador
+    path('api/historias/', include('api.historias.urls')),
+    
+    # configuración de elegibilidad
+    path('api/configuracion/', include('api.configuracion.urls')),
+    
+    path("admin/", admin.site.urls),
     
     # materia
     path('api/materia/', listar_materias, name='materia_list'),
