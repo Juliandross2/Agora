@@ -11,13 +11,22 @@ class Pensum(models.Model):
     
     @property
     def creditos_obligatorios_totales(self):
-        """Calcula automáticamente los créditos obligatorios totales"""
+        """Calcula automáticamente los créditos obligatorios hasta el semestre límite"""
         from api.materia.models.materia import Materia
-        total = Materia.objects.filter(
+        from api.configuracion.models.configuracion_elegibilidad import ConfiguracionElegibilidad
+
+        materias = Materia.objects.filter(
             pensum_id=self,
             es_obligatoria=True,
             es_activa=True
-        ).aggregate(total_creditos=Sum('creditos'))['total_creditos']
+        )
+
+        config = ConfiguracionElegibilidad.get_config_activa(self.programa_id)
+        semestre_limite = getattr(config, 'semestre_limite_electivas', None)
+        if semestre_limite:
+            materias = materias.filter(semestre__lte=semestre_limite)
+
+        total = materias.aggregate(total_creditos=Sum('creditos'))['total_creditos']
         return total or 0
     
     @property
