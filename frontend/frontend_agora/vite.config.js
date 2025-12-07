@@ -8,8 +8,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui': ['notistack', '@hello-pangea/dnd'],
-          'export': ['jspdf', 'xlsx'],
+          'ui': ['notistack', '@hello-pangea/dnd', 'lucide-react'],
+          'export': ['xlsx'],
         },
       },
     },
