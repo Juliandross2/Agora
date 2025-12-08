@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import { listarProgramas } from '../services/consumers/ProgramaClient';
+import { obtenerPensumActual, obtenerMateriasPorSemestre } from '../services/consumers/PensumClient';
 import { verificarElegibilidadMasiva } from '../services/consumers/ComparacionClient';
 import type { Programa } from '../services/domain/ProgramaModels';
 import type { VerificacionMasivaResponse } from '../services/consumers/ComparacionClient';
 import { guardarResultadosComparacion, limpiarResultadosComparacion } from '../utils/storageUtils';
+import { buildPensumMateriasResumen } from '../utils/pensumUtils';
+import { obtenerConfiguracionActiva } from '../services/consumers/ConfiguracionClient';
 
 const MAX_FILES = 50;
 
@@ -18,6 +21,36 @@ export default function ComparacionPensum() {
   const [evaluating, setEvaluating] = useState(false);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+
+  const obtenerPensumMetadata = async (programa: number) => {
+    try {
+      const pensumActual = await obtenerPensumActual(programa);
+      const pensumId = pensumActual.pensum_actual?.pensum_id ?? null;
+
+      if (pensumId) {
+        const materiasPorSemestre = await obtenerMateriasPorSemestre(pensumId);
+        return {
+          pensumId,
+          pensumMaterias: buildPensumMateriasResumen(materiasPorSemestre),
+        };
+      }
+
+      return { pensumId, pensumMaterias: [] };
+    } catch (error) {
+      console.warn('No fue posible obtener las materias del pensum', error);
+      return { pensumId: null, pensumMaterias: [] };
+    }
+  };
+
+  const obtenerConfiguracionMetadata = async (programa: number) => {
+    try {
+      const config = await obtenerConfiguracionActiva(programa);
+      return { semestreLimite: config.semestre_limite_electivas };
+    } catch (error) {
+      console.warn('No fue posible obtener la configuración de elegibilidad', error);
+      return { semestreLimite: null };
+    }
+  };
 
   useEffect(() => {
     // Limpiar resultados previos al entrar a esta vista
@@ -89,8 +122,24 @@ export default function ComparacionPensum() {
         programa_id: programaId
       });
 
-      // Guardar resultados en sessionStorage
-      guardarResultadosComparacion(response);
+      const programaSeleccionado = programas.find(p => p.programa_id === programaId);
+
+      const [pensumInfo, configInfo] = await Promise.all([
+        obtenerPensumMetadata(programaId),
+        obtenerConfiguracionMetadata(programaId)
+      ]);
+
+      guardarResultadosComparacion({
+        response,
+        metadata: {
+          programaId,
+          programaNombre: programaSeleccionado?.nombre_programa,
+          pensumId: pensumInfo.pensumId,
+          pensumMaterias: pensumInfo.pensumMaterias,
+          semestreLimite: configInfo.semestreLimite,
+          generadoEn: new Date().toISOString()
+        }
+      });
 
       enqueueSnackbar(`${response.total_estudiantes} estudiante(s) evaluado(s)`, { variant: 'success' });
       

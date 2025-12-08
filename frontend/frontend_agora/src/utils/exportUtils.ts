@@ -1,5 +1,34 @@
 import * as XLSX from 'xlsx';
 import type { ComparacionEstudiante } from '../services/consumers/ComparacionClient';
+import type { PensumMateriaResumen } from './pensumUtils';
+import { normalizeText } from './textUtils';
+
+declare global {
+  interface Window {
+    ExcelJS?: any;
+  }
+}
+
+const loadExcelJS = async (): Promise<any> => {
+  if (window.ExcelJS) {
+    return window.ExcelJS;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar ExcelJS'));
+    document.body.appendChild(script);
+  });
+
+  if (!window.ExcelJS) {
+    throw new Error('ExcelJS no está disponible');
+  }
+
+  return window.ExcelJS;
+};
 
 interface EstudianteResumen {
   id: string;
@@ -24,6 +53,7 @@ interface EstudianteDetalle {
   estado: 'APTO' | 'NO_APTO';
   materias: Materia[];
 }
+
 
 // Exportar resumen general a PDF (vía impresión)
 export const exportResumenToPDF = (estudiantes: EstudianteResumen[]): void => {
@@ -1358,4 +1388,199 @@ export const exportComparacionResumenToExcel = (estudiantes: ComparacionEstudian
   // Guardar archivo
   const filename = `resumen_comparacion_${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(wb, filename);
+};
+
+interface ExportComparacionMatrixOptions {
+  estudiantes: ComparacionEstudiante[];
+  pensumMaterias: PensumMateriaResumen[];
+  semestreLimite?: number | null;
+  programaNombre?: string;
+}
+
+export const exportComparacionPensumMatrixToExcel = async (
+  options: ExportComparacionMatrixOptions
+): Promise<void> => {
+  const { estudiantes, pensumMaterias, semestreLimite, programaNombre } = options;
+
+  if (!estudiantes.length) {
+    throw new Error('No hay estudiantes para exportar.');
+  }
+
+  if (!pensumMaterias.length) {
+    throw new Error('No hay materias del pensum para exportar.');
+  }
+
+  const limit = typeof semestreLimite === 'number' ? semestreLimite : Infinity;
+  const faltantesMap = new Map(
+    estudiantes.map(est => [
+      est.estudiante,
+      new Set(est.materias_faltantes_hasta_semestre_limite.map(normalizeText))
+    ])
+  );
+  const aprobadasDespuesMap = new Map(
+    estudiantes.map(est => [
+      est.estudiante,
+      new Set(
+        (est.materias_aprobadas_despues_semestre_limite || []).map(item =>
+          normalizeText(item.materia)
+        )
+      )
+    ])
+  );
+
+  const ExcelJS = await loadExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Matriz', {
+    views: [{ state: 'frozen', xSplit: 2, ySplit: 8 }]
+  });
+
+  const metaRows = [
+    ['REPORTE DE NIVELACIÓN'],
+    ['Programa', programaNombre || 'No disponible'],
+    ['Semestre límite considerado', Number.isFinite(limit) ? limit : 'No configurado'],
+    ['Total de materias', pensumMaterias.length],
+    ['Total de estudiantes evaluados', estudiantes.length],
+    ['Fecha de generación', new Date().toLocaleString('es-CO')],
+    []
+  ];
+
+  metaRows.forEach((row, idx) => {
+    const newRow = sheet.addRow(row);
+    if (idx === 0) {
+      newRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF1F2937' } };
+    } else if (row.length > 1) {
+      newRow.getCell(1).font = { bold: true, color: { argb: 'FF374151' } };
+    }
+  });
+
+  const headerRow = sheet.addRow([
+    'Materia',
+    'Semestre',
+    ...estudiantes.map(est => est.estudiante)
+  ]);
+
+  const border = {
+    top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+  };
+
+  const colorCellBorder = {
+    top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    left: { style: 'medium', color: { argb: 'FF000000' } },
+    right: { style: 'medium', color: { argb: 'FF000000' } }
+  };
+
+  const headerBorder = {
+    top: { style: 'medium', color: { argb: 'FF000000' } },
+    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+  };
+
+  headerRow.eachCell((cell, colNumber) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = headerBorder;
+    if (colNumber > 2) {
+      cell.numFmt = '@';
+      sheet.getColumn(colNumber).width = 18;
+    }
+  });
+
+  sheet.getColumn(1).width = 42;
+  sheet.getColumn(2).width = 12;
+
+  const fillCompleted = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+  const fillPending = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } };
+  const fillFuture = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+  const fillAdvanced = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE68A' } };
+
+  pensumMaterias.forEach(materia => {
+    const normalizedName = materia.nombreNormalizado || normalizeText(materia.nombre);
+    const states = estudiantes.map(est => {
+      const faltantes = faltantesMap.get(est.estudiante) ?? new Set<string>();
+      const aprobadasDespues = aprobadasDespuesMap.get(est.estudiante) ?? new Set<string>();
+      if (limit !== Infinity && materia.semestre > limit) {
+        if (faltantes.has(normalizedName)) {
+          return 'future';
+        }
+        return aprobadasDespues.has(normalizedName) ? 'advanced' : 'future';
+      }
+      return faltantes.has(normalizedName) ? 'pending' : 'completed';
+    });
+
+    const row = sheet.addRow([materia.nombre, materia.semestre, ...states]);
+
+    row.getCell(1).font = { bold: true, color: { argb: 'FF111827' } };
+    row.getCell(1).border = border;
+    row.getCell(2).alignment = { horizontal: 'center' };
+    row.getCell(2).border = border;
+
+    states.forEach((state, index) => {
+      const cell = row.getCell(index + 3);
+      cell.value = '';
+      cell.border = colorCellBorder;
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      if (state === 'completed') {
+        cell.fill = fillCompleted;
+      } else if (state === 'pending') {
+        cell.fill = fillPending;
+      } else if (state === 'advanced') {
+        cell.fill = fillAdvanced;
+      } else {
+        cell.fill = fillFuture;
+      }
+    });
+  });
+
+  const lastRow = sheet.lastRow;
+  if (lastRow) {
+    lastRow.eachCell((cell, colNumber) => {
+      if (colNumber <= 2) {
+        cell.border = {
+          ...cell.border,
+          bottom: { style: 'medium', color: { argb: 'FF000000' } }
+        };
+      } else {
+        cell.border = {
+          ...colorCellBorder,
+          bottom: { style: 'medium', color: { argb: 'FF000000' } }
+        };
+      }
+    });
+  }
+
+  const lastStudentColumn = estudiantes.length + 2;
+  const rightBorder = { style: 'medium', color: { argb: 'FF000000' } };
+  for (let rowIdx = headerRow.number; rowIdx <= sheet.rowCount; rowIdx += 1) {
+    const row = sheet.getRow(rowIdx);
+    const cell = row.getCell(lastStudentColumn);
+    if (!cell) continue;
+
+    if (rowIdx === headerRow.number) {
+      cell.border = { ...headerBorder, right: rightBorder };
+    } else {
+      const currentBorder = cell.border || colorCellBorder;
+      cell.border = { ...currentBorder, right: rightBorder };
+    }
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `matriz_pensum_${new Date().toISOString().split('T')[0]}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
