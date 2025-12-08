@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-import json
 
 
 class ConfiguracionElegibilidad(models.Model):
@@ -20,15 +19,6 @@ class ConfiguracionElegibilidad(models.Model):
         help_text="Programa académico asociado (requerido)"
     )
     
-    # Configuraciones principales
-    porcentaje_avance_minimo = models.DecimalField(
-        max_digits=5,
-        decimal_places=4,
-        default=0.60,
-        validators=[MinValueValidator(0), MaxValueValidator(1)],
-        help_text="Porcentaje mínimo de avance requerido (0.60 = 60%)"
-    )
-    
     nota_aprobatoria = models.DecimalField(
         max_digits=3,
         decimal_places=1,
@@ -41,12 +31,6 @@ class ConfiguracionElegibilidad(models.Model):
         default=7,
         validators=[MinValueValidator(1)],
         help_text="Hasta qué semestre se exige tener TODO aprobado"
-    )
-    
-    # Reglas según niveles (almacenado como JSON)
-    niveles_creditos_periodos = models.JSONField(
-        default=dict,
-        help_text="Reglas por nivel. Ejemplo: {8: {'min_creditos': 112, 'max_periodos': 7}}"
     )
     
     # Control de estado
@@ -85,10 +69,8 @@ class ConfiguracionElegibilidad(models.Model):
     def to_dict(self):
         """Convierte el modelo a un diccionario compatible con CONFIG"""
         return {
-            "porcentaje_avance_minimo": float(self.porcentaje_avance_minimo),
             "nota_aprobatoria": float(self.nota_aprobatoria),
             "semestre_limite_electivas": self.semestre_limite_electivas,
-            "niveles_creditos_periodos": self.niveles_creditos_periodos if self.niveles_creditos_periodos else {}
         }
     
     @classmethod

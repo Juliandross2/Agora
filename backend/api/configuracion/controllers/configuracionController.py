@@ -48,16 +48,17 @@ def guardar_configuracion_en_bd(config_dict, programa_id):
             configs_anteriores.update(es_activo=False)
         
         # Completar configuración con valores por defecto si faltan
-        config_completa = CONFIG.copy()
+        config_completa = {
+            'nota_aprobatoria': CONFIG['nota_aprobatoria'],
+            'semestre_limite_electivas': CONFIG['semestre_limite_electivas'],
+        }
         config_completa.update(config_dict)
         
         # Crear nueva configuración
         nueva_config = ConfiguracionElegibilidad(
             programa_id=programa,
-            porcentaje_avance_minimo=config_completa.get('porcentaje_avance_minimo', CONFIG['porcentaje_avance_minimo']),
             nota_aprobatoria=config_completa.get('nota_aprobatoria', CONFIG['nota_aprobatoria']),
             semestre_limite_electivas=config_completa.get('semestre_limite_electivas', CONFIG['semestre_limite_electivas']),
-            niveles_creditos_periodos=config_completa.get('niveles_creditos_periodos', CONFIG.get('niveles_creditos_periodos', {})),
             es_activo=True
         )
         nueva_config.save()
@@ -125,13 +126,8 @@ def obtener_configuracion(programa_id):
 						"configuracion_id": 1,
 						"programa_id": 1,
 						"programa_nombre": "Ingeniería de Sistemas",
-						"porcentaje_avance_minimo": 0.60,
 						"nota_aprobatoria": 3.0,
 						"semestre_limite_electivas": 7,
-						"niveles_creditos_periodos": {
-							"8": {"min_creditos": 112, "max_periodos": 7},
-							"9": {"min_creditos": 132, "max_periodos": 8}
-						},
 						"es_activo": True
 					}
 				)
@@ -173,10 +169,8 @@ def obtener_configuracion_activa(request):
 			'configuracion_id': config.configuracion_id,
 			'programa_id': config.programa_id.programa_id,
 			'programa_nombre': config.programa_id.nombre_programa,
-			'porcentaje_avance_minimo': float(config.porcentaje_avance_minimo),
 			'nota_aprobatoria': float(config.nota_aprobatoria),
 			'semestre_limite_electivas': config.semestre_limite_electivas,
-			'niveles_creditos_periodos': config.niveles_creditos_periodos,
 			'es_activo': config.es_activo,
 			'fecha_creacion': config.fecha_creacion.isoformat(),
 			'fecha_actualizacion': config.fecha_actualizacion.isoformat()
@@ -197,10 +191,8 @@ def obtener_configuracion_activa(request):
 		name='CrearConfiguracionRequest',
 		fields={
 			'programa_id': serializers.IntegerField(required=True, help_text='ID del programa (requerido)'),
-			'porcentaje_avance_minimo': serializers.FloatField(required=False, help_text='Porcentaje mínimo de avance (0.60 = 60%). Por defecto: 0.60'),
 			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar. Por defecto: 3.0'),
 			'semestre_limite_electivas': serializers.IntegerField(required=False, help_text='Semestre límite para exigir materias aprobadas. Por defecto: 7'),
-			'niveles_creditos_periodos': serializers.JSONField(required=False, help_text='Reglas por nivel. Ejemplo: {"8": {"min_creditos": 112, "max_periodos": 7}}')
 		}
 	),
 	responses={
@@ -244,14 +236,10 @@ def crear_configuracion(request):
 		
 		# Construir diccionario de configuración
 		config_data = {}
-		if 'porcentaje_avance_minimo' in request.data:
-			config_data['porcentaje_avance_minimo'] = request.data['porcentaje_avance_minimo']
 		if 'nota_aprobatoria' in request.data:
 			config_data['nota_aprobatoria'] = request.data['nota_aprobatoria']
 		if 'semestre_limite_electivas' in request.data:
 			config_data['semestre_limite_electivas'] = request.data['semestre_limite_electivas']
-		if 'niveles_creditos_periodos' in request.data:
-			config_data['niveles_creditos_periodos'] = request.data['niveles_creditos_periodos']
 		
 		# Guardar configuración
 		nueva_config = guardar_configuracion_en_bd(config_data, programa_id=programa_id)
@@ -317,7 +305,6 @@ def listar_configuraciones(request):
 				'configuracion_id': config.configuracion_id,
 				'programa_id': config.programa_id.programa_id,
 				'programa_nombre': config.programa_id.nombre_programa,
-				'porcentaje_avance_minimo': float(config.porcentaje_avance_minimo),
 				'nota_aprobatoria': float(config.nota_aprobatoria),
 				'semestre_limite_electivas': config.semestre_limite_electivas,
 				'es_activo': config.es_activo,
@@ -358,10 +345,8 @@ def listar_configuraciones(request):
 						"configuracion_id": 5,
 						"programa_id": 1,
 						"programa_nombre": "Ingeniería de Sistemas",
-						"porcentaje_avance_minimo": 0.60,
 						"nota_aprobatoria": 3.0,
 						"semestre_limite_electivas": 7,
-						"niveles_creditos_periodos": {},
 						"es_activo": True,
 						"fecha_creacion": "2025-11-27T19:00:00",
 						"fecha_actualizacion": "2025-11-27T19:00:00"
@@ -386,10 +371,8 @@ def obtener_configuracion_por_id(request, id):
 			'configuracion_id': config.configuracion_id,
 			'programa_id': config.programa_id.programa_id,
 			'programa_nombre': config.programa_id.nombre_programa,
-			'porcentaje_avance_minimo': float(config.porcentaje_avance_minimo),
 			'nota_aprobatoria': float(config.nota_aprobatoria),
 			'semestre_limite_electivas': config.semestre_limite_electivas,
-			'niveles_creditos_periodos': config.niveles_creditos_periodos,
 			'es_activo': config.es_activo,
 			'fecha_creacion': config.fecha_creacion.isoformat(),
 			'fecha_actualizacion': config.fecha_actualizacion.isoformat()
@@ -422,10 +405,8 @@ def obtener_configuracion_por_id(request, id):
 						"configuracion_id": 5,
 						"programa_id": 1,
 						"programa_nombre": "Ingeniería de Sistemas",
-						"porcentaje_avance_minimo": 0.60,
 						"nota_aprobatoria": 3.0,
 						"semestre_limite_electivas": 7,
-						"niveles_creditos_periodos": {},
 						"es_activo": True,
 						"fecha_creacion": "2025-11-27T19:00:00",
 						"fecha_actualizacion": "2025-11-27T19:00:00"
@@ -467,10 +448,8 @@ def obtener_configuracion_por_programa(request, programa_id):
 			'configuracion_id': config.configuracion_id,
 			'programa_id': config.programa_id.programa_id,
 			'programa_nombre': config.programa_id.nombre_programa,
-			'porcentaje_avance_minimo': float(config.porcentaje_avance_minimo),
 			'nota_aprobatoria': float(config.nota_aprobatoria),
 			'semestre_limite_electivas': config.semestre_limite_electivas,
-			'niveles_creditos_periodos': config.niveles_creditos_periodos,
 			'es_activo': config.es_activo,
 			'fecha_creacion': config.fecha_creacion.isoformat(),
 			'fecha_actualizacion': config.fecha_actualizacion.isoformat()
@@ -490,10 +469,8 @@ def obtener_configuracion_por_programa(request, programa_id):
 	request=inline_serializer(
 		name='ActualizarConfiguracionRequest',
 		fields={
-			'porcentaje_avance_minimo': serializers.FloatField(required=False, help_text='Porcentaje mínimo de avance'),
 			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar'),
 			'semestre_limite_electivas': serializers.IntegerField(required=False, help_text='Semestre límite'),
-			'niveles_creditos_periodos': serializers.JSONField(required=False, help_text='Reglas por nivel')
 		}
 	),
 	responses={
@@ -513,14 +490,10 @@ def actualizar_configuracion(request, id):
 		config = ConfiguracionElegibilidad.objects.get(configuracion_id=id)
 		
 		# Actualizar solo los campos proporcionados
-		if 'porcentaje_avance_minimo' in request.data:
-			config.porcentaje_avance_minimo = request.data['porcentaje_avance_minimo']
 		if 'nota_aprobatoria' in request.data:
 			config.nota_aprobatoria = request.data['nota_aprobatoria']
 		if 'semestre_limite_electivas' in request.data:
 			config.semestre_limite_electivas = request.data['semestre_limite_electivas']
-		if 'niveles_creditos_periodos' in request.data:
-			config.niveles_creditos_periodos = request.data['niveles_creditos_periodos']
 		
 		config.save()
 		
@@ -530,10 +503,8 @@ def actualizar_configuracion(request, id):
 			'configuracion': {
 				'programa_id': config.programa_id.programa_id,
 				'programa_nombre': config.programa_id.nombre_programa,
-				'porcentaje_avance_minimo': float(config.porcentaje_avance_minimo),
 				'nota_aprobatoria': float(config.nota_aprobatoria),
 				'semestre_limite_electivas': config.semestre_limite_electivas,
-				'niveles_creditos_periodos': config.niveles_creditos_periodos,
 				'es_activo': config.es_activo
 			}
 		}, status=status.HTTP_200_OK)

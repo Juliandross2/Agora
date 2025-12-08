@@ -43,7 +43,10 @@ MAX_FILES_MASIVA = 50  # Límite de archivos en carga masiva
 						"porcentaje_avance": 35.22,
 						"nivelado": False,
 						"estado": 0,
-						"materias_faltantes_hasta_semestre_limite": ["ia", "machine learning"]
+						"materias_faltantes_hasta_semestre_limite": ["IA", "MACHINE LEARNING"],
+						"materias_aprobadas_despues_semestre_limite": [
+							{"materia": "PROYECTO DE GRADO", "semestre": 10, "creditos": 3}
+						]
 					}
 				)
 			]
@@ -101,6 +104,7 @@ MAX_FILES_MASIVA = 50  # Límite de archivos en carga masiva
 	- nivelado: Si el estudiante está nivelado según la configuración
 	- estado: 1 = Elegible, 0 = No elegible
 	- materias_faltantes_hasta_semestre_limite: Lista de materias pendientes
+	- materias_aprobadas_despues_semestre_limite: Materias obligatorias aprobadas en semestres superiores al límite
 	"""
 )
 @api_view(['POST'])
@@ -287,7 +291,10 @@ def verificar_elegibilidad_estudiante(request):
 								"porcentaje_avance": 81.46,
 								"nivelado": False,
 								"estado": 1,
-								"materias_faltantes_hasta_semestre_limite": []
+								"materias_faltantes_hasta_semestre_limite": [],
+								"materias_aprobadas_despues_semestre_limite": [
+									{"materia": "ELECTIVA PROFESIONAL I", "semestre": 10, "creditos": 3}
+								]
 							},
 							{
 								"estudiante": "87654321",
@@ -298,7 +305,8 @@ def verificar_elegibilidad_estudiante(request):
 								"porcentaje_avance": 59.6,
 								"nivelado": False,
 								"estado": 0,
-								"materias_faltantes_hasta_semestre_limite": ["calculo iii"]
+								"materias_faltantes_hasta_semestre_limite": ["CALCULO III"],
+								"materias_aprobadas_despues_semestre_limite": []
 							}
 						]
 					}
