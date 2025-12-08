@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, Download, Plus, FileSpreadsheet, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
-import type { VerificacionMasivaResponse, ComparacionEstudiante } from '../services/consumers/ComparacionClient';
-import { exportComparacionResumenToPDF, exportComparacionResumenToExcel } from '../utils/exportUtils';
-import { obtenerResultadosComparacion } from '../utils/storageUtils';
+import type { ComparacionEstudiante } from '../services/consumers/ComparacionClient';
+import { exportComparacionResumenToPDF, exportComparacionPensumMatrixToExcel } from '../utils/exportUtils';
+import { obtenerResultadosComparacion, type ComparacionResultadosCache } from '../utils/storageUtils';
 
 type EstadoFiltro = 'TODOS' | 'APTO' | 'NO_APTO';
 
@@ -14,17 +14,17 @@ export default function ComparacionList() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<EstadoFiltro>('TODOS');
-  const [resultados, setResultados] = useState<VerificacionMasivaResponse | null>(null);
+  const [cache, setCache] = useState<ComparacionResultadosCache | null>(null);
 
   useEffect(() => {
     // Intentar obtener resultados desde sessionStorage
     const resultadosGuardados = obtenerResultadosComparacion();
     if (resultadosGuardados) {
-      setResultados(resultadosGuardados);
+      setCache(resultadosGuardados);
     }
   }, []);
 
-  if (!resultados) {
+  if (!cache) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-blue-900 text-white py-6">
@@ -56,8 +56,16 @@ export default function ComparacionList() {
     );
   }
 
+  const resultados = cache.response;
+  const metadata = cache.metadata;
+  const pensumMaterias = metadata?.pensumMaterias ?? [];
+  const semestreLimite = metadata?.semestreLimite ?? null;
+  const estudiantesOrdenados = [...resultados.resultados].sort(
+    (a, b) => a.porcentaje_avance - b.porcentaje_avance
+  );
+
   // Filtrar estudiantes
-  const estudiantesFiltrados = resultados.resultados.filter(estudiante => {
+  const estudiantesFiltrados = estudiantesOrdenados.filter(estudiante => {
     const matchesSearch = estudiante.estudiante.toLowerCase().includes(searchTerm.toLowerCase());
     const esApto = estudiante.estado === 1;
     const matchesEstado = 
@@ -82,7 +90,7 @@ export default function ComparacionList() {
 
   const handleExportarPDF = async () => {
     try {
-      exportComparacionResumenToPDF(resultados.resultados);
+      exportComparacionResumenToPDF(estudiantesOrdenados);
       enqueueSnackbar('PDF generado correctamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al exportar PDF:', error);
@@ -92,7 +100,17 @@ export default function ComparacionList() {
 
   const handleExportarExcel = async () => {
     try {
-      exportComparacionResumenToExcel(resultados.resultados);
+      if (!pensumMaterias.length) {
+        enqueueSnackbar('No hay información del pensum para generar el Excel. Repite la comparación.', { variant: 'warning' });
+        return;
+      }
+
+      await exportComparacionPensumMatrixToExcel({
+        estudiantes: estudiantesOrdenados,
+        pensumMaterias,
+        semestreLimite: semestreLimite ?? undefined,
+        programaNombre: metadata?.programaNombre
+      });
       enqueueSnackbar('Excel generado correctamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al exportar Excel:', error);

@@ -6,7 +6,7 @@ Uso:
     python manage.py crear_configuracion_default --programa_id 1
 """
 from django.core.management.base import BaseCommand
-from api.historias.models.configuracion_elegibilidad import ConfiguracionElegibilidad
+from api.configuracion.models.configuracion_elegibilidad import ConfiguracionElegibilidad
 from api.historias.config.config import CONFIG
 
 
@@ -73,11 +73,8 @@ class Command(BaseCommand):
         # Crear nueva configuración con valores por defecto
         nueva_config = ConfiguracionElegibilidad(
             programa_id=programa,
-            porcentaje_avance_minimo=CONFIG['porcentaje_avance_minimo'],
             nota_aprobatoria=CONFIG['nota_aprobatoria'],
             semestre_limite_electivas=CONFIG['semestre_limite_electivas'],
-            total_creditos_obligatorios=CONFIG['total_creditos_obligatorios'],
-            niveles_creditos_periodos=CONFIG.get('niveles_creditos_periodos', {}),
             es_activo=True
         )
         nueva_config.save()
@@ -88,8 +85,6 @@ class Command(BaseCommand):
                 f'✓ Configuración {tipo_config} creada exitosamente (ID: {nueva_config.configuracion_id})'
             )
         )
-        self.stdout.write(f'  - Porcentaje avance mínimo: {nueva_config.porcentaje_avance_minimo * 100}%')
         self.stdout.write(f'  - Nota aprobatoria: {nueva_config.nota_aprobatoria}')
         self.stdout.write(f'  - Semestre límite electivas: {nueva_config.semestre_limite_electivas}')
-        self.stdout.write(f'  - Total créditos obligatorios: {nueva_config.total_creditos_obligatorios}')
 

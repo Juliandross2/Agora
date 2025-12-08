@@ -3,6 +3,12 @@ import { getToken } from './Auth';
 const BASE_URL = 'http://localhost:8000/api/historias';
 
 /** Resultado de comparación individual de un estudiante */
+export interface MateriaAprobadaDespuesLimite {
+  materia: string;
+  semestre: number | null;
+  creditos: number | null;
+}
+
 export interface ComparacionEstudiante {
   estudiante: string;
   semestre_maximo: number;
@@ -13,6 +19,7 @@ export interface ComparacionEstudiante {
   nivelado: boolean;
   estado: number;
   materias_faltantes_hasta_semestre_limite: string[];
+  materias_aprobadas_despues_semestre_limite: MateriaAprobadaDespuesLimite[];
 }
 
 /** Respuesta de verificación masiva */

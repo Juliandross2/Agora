@@ -37,7 +37,10 @@ def obtener_pensum_desde_bd(programa_id):
         raise ValueError(f'No hay pensum activo para el programa "{programa.nombre_programa}" (ID: {programa_id})')
     
     # Obtener todas las materias activas del pensum
-    materias = pensum_obj.materia_set.filter(es_activa=True).values('nombre_materia', 'semestre', 'creditos')
+    materias = pensum_obj.materia_set.filter(
+        es_activa=True,
+        es_obligatoria=True  # solo materias obligatorias cuentan para elegibilidad
+    ).values('nombre_materia', 'semestre', 'creditos')
     
     if not materias.exists():
         raise ValueError(f'El pensum del programa "{programa.nombre_programa}" no tiene materias activas')
@@ -157,8 +160,7 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
         historia: DataFrame con la historia académica del estudiante
         pensum: DataFrame con el pensum académico
         config: Diccionario opcional con configuración personalizada. Si es None, usa CONFIG por defecto.
-                Debe contener: porcentaje_avance_minimo, nota_aprobatoria, semestre_limite_electivas,
-                niveles_creditos_periodos
+                Debe contener: nota_aprobatoria y semestre_limite_electivas
         programa_id: ID del programa para obtener el total de créditos del pensum
     
     Returns:
@@ -178,7 +180,6 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
     print(f"Configuración recibida:")
     print(f"  - Semestre límite: {semestre_limite}")
     print(f"  - Nota aprobatoria: {nota_aprobatoria}")
-    print(f"  - Porcentaje mínimo: {config.get('porcentaje_avance_minimo')}")
     
     if semestre_limite is None or nota_aprobatoria is None:
         raise ValueError("La configuración está incompleta. Faltan campos requeridos.")
@@ -192,8 +193,9 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
         print(f" PENSUM - Materias DESPUÉS de normalizar (primeras 5):")
         print(pensum['materia'].head().tolist())
 
-    # Pensum hasta semestre límite
+    # Pensum segmentado por semestre límite
     pensum_limite = pensum[pensum["semestre"] <= semestre_limite]
+    pensum_fuera_limite = pensum[pensum["semestre"] > semestre_limite]
     materias_requeridas = pensum_limite["materia"].tolist()
     print(f"\n Materias requeridas hasta semestre {semestre_limite}: {len(materias_requeridas)} materias")
     print(f"   {materias_requeridas[:10]}")  # Mostrar primeras 10
@@ -241,6 +243,20 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
     aprobadas_con_fish = aprobadas + fish_aprobadas
     print(f"\nprint TOTAL aprobadas (con FISH): {len(aprobadas_con_fish)} materias")
 
+    # Materias aprobadas después del semestre límite
+    materias_aprobadas_fuera_limite_df = pensum_fuera_limite[
+        pensum_fuera_limite['materia'].isin(aprobadas_con_fish)
+    ]
+    materias_aprobadas_fuera_limite = [
+        {
+            "materia": fila['materia'],
+            "semestre": int(fila['semestre']) if pd.notna(fila['semestre']) else None,
+            "creditos": int(fila['créditos']) if pd.notna(fila['créditos']) else None
+        }
+        for _, fila in materias_aprobadas_fuera_limite_df.iterrows()
+    ]
+    print(f"\n Materias aprobadas DESPUÉS del semestre límite: {len(materias_aprobadas_fuera_limite)}")
+
     # Semestre máximo cursado (asegurar entero)
     try:
         semestre_max = int(pd.to_numeric(historia["semestre"], errors='coerce').max())
@@ -248,33 +264,39 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
         semestre_max = 0
     print(f"\n Semestre máximo cursado: {semestre_max}")
 
-    # Créditos aprobados: sumar créditos del pensum para materias aprobadas (evita doble conteo por reintentos)
-    if 'créditos' in pensum.columns:
-        creditos_aprobados = pensum[pensum['materia'].isin(aprobadas_con_fish)]['créditos'].sum()
+    # Créditos aprobados: sumar solo créditos obligatorios hasta el semestre límite
+    if 'créditos' in pensum_limite.columns:
+        creditos_aprobados = pensum_limite[pensum_limite['materia'].isin(aprobadas_con_fish)]['créditos'].sum()
     else:
-        # Fallback: sumar créditos desde la historia (si existen)
-        creditos_aprobados = historia.loc[historia["definitiva"] >= nota_aprobatoria, "créditos"].sum()
+        # Fallback: sumar créditos desde la historia (si existen) respetando semestre límite
+        historia_semestres = pd.to_numeric(historia["semestre"], errors='coerce')
+        creditos_aprobados = historia.loc[
+            (historia["definitiva"] >= nota_aprobatoria) &
+            (historia_semestres <= semestre_limite),
+            "créditos"
+        ].sum()
     print(f" Créditos aprobados: {creditos_aprobados}")
 
     # Periodos matriculados
     periodos_matriculados = historia["periodo"].nunique() if 'periodo' in historia.columns else 0
     print(f" Periodos matriculados: {periodos_matriculados}")
 
-    # Verificación de "nivelado"
-    nivelado = False
-    niveles_config = config.get("niveles_creditos_periodos", {})
-    print(f"\n Verificación de nivelado:")
-    print(f"   Niveles configurados: {niveles_config}")
-    if semestre_max in niveles_config:
-        regla = niveles_config[semestre_max]
-        print(f"   Regla para semestre {semestre_max}: {regla}")
-        print(f"   Créditos: {creditos_aprobados} >= {regla['min_creditos']}")
-        print(f"   Periodos: {periodos_matriculados} <= {regla['max_periodos']}")
-        if creditos_aprobados >= regla["min_creditos"] and periodos_matriculados <= regla["max_periodos"]:
-            nivelado = True
-            print(f"    NIVELADO")
+    # Créditos requeridos hasta el semestre límite
+    creditos_requeridos_hasta_limite = None
+    if 'créditos' in pensum_limite.columns:
+        creditos_requeridos_hasta_limite = pensum_limite['créditos'].sum()
+        print(f"\n Créditos requeridos hasta semestre {semestre_limite}: {creditos_requeridos_hasta_limite}")
     else:
-        print(f"     No hay regla para semestre {semestre_max}")
+        print("\n No fue posible determinar los créditos requeridos (columna 'créditos' no disponible en pensum)")
+    
+    # Verificación de "nivelado": debe haber aprobado el 100% de los créditos obligatorios hasta el semestre límite
+    nivelado = False
+    if creditos_requeridos_hasta_limite is not None:
+        print(f" Verificación de nivelado (créditos aprobados vs requeridos): {creditos_aprobados} >= {creditos_requeridos_hasta_limite}")
+        nivelado = creditos_requeridos_hasta_limite > 0 and creditos_aprobados >= creditos_requeridos_hasta_limite
+        print(f" Resultado nivelado: {nivelado}")
+    else:
+        print(" Resultado nivelado: No evaluado por falta de información de créditos")
 
     # Porcentaje de avance - Calcular total de créditos desde el pensum
     total_creditos = 0
@@ -309,23 +331,17 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
             if similares:
                 print(f"      Posibles similares aprobadas: {similares[:3]}")
 
-    # Elegibilidad
-    porcentaje_minimo = config.get("porcentaje_avance_minimo", 0)
+    # Elegibilidad basada únicamente en el cumplimiento del 100% de créditos obligatorios hasta el semestre límite
     print(f"\n CRITERIOS DE ELEGIBILIDAD:")
-    print(f"   Nivelado: {nivelado}")
-    print(f"   Sin faltantes: {not faltantes}")
-    print(f"   Porcentaje >= {porcentaje_minimo*100}%: {porcentaje_avance >= porcentaje_minimo}")
-    print(f"   Semestre >= {semestre_limite}: {semestre_max >= semestre_limite}")
+    print(f"   Nivelado (100% créditos hasta semestre {semestre_limite}): {nivelado}")
+    print(f"   Sin materias faltantes: {not faltantes}")
     
     if nivelado and not faltantes:
         estado = 1
-        print(f"    ELEGIBLE (nivelado y sin faltantes)")
-    elif porcentaje_avance >= porcentaje_minimo and semestre_max >= semestre_limite and not faltantes:
-        estado = 1
-        print(f"    ELEGIBLE (cumple todos los criterios)")
+        print("    ELEGIBLE (cumple créditos y no tiene faltantes)")
     else:
         estado = 0
-        print(f"    NO ELEGIBLE")
+        print("    NO ELEGIBLE")
 
     print("="*80)
     print("FIN DE COMPARACIÓN")
@@ -339,5 +355,6 @@ def comparar_estudiante(historia, pensum, config=None, programa_id=None):
         "porcentaje_avance": round(porcentaje_avance * 100, 2),
         "nivelado": nivelado,
         "estado": estado,
-        "materias_faltantes_hasta_semestre_limite": faltantes
+        "materias_faltantes_hasta_semestre_limite": faltantes,
+        "materias_aprobadas_despues_semestre_limite": materias_aprobadas_fuera_limite
     }
