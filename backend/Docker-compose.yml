@@ -22,7 +22,7 @@ services:
     build: .
     container_name: agora_django
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "sleep 10 &&
              python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
