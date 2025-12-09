@@ -8,9 +8,9 @@ import {
   LogOut,
   HomeIcon,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // <-- agregado
+import { useNavigate } from "react-router-dom";
 import { getProfile } from "../services/consumers/UsuarioClient";
-import { clearToken } from "../services/consumers/Auth"; // <-- import agregado
+import { clearToken, isAdmin } from "../services/consumers/Auth";
 import type { User as Usuario } from "../services/domain/UsuarioModels";
 
 interface SidebarProps {
@@ -28,7 +28,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [profile, setProfile] = useState<Usuario | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const navigate = useNavigate(); // <-- agregado
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -38,9 +39,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         const res = await getProfile();
         if (!mounted) return;
         setProfile(res.user ?? null);
+        setUserIsAdmin(isAdmin());
       } catch (e) {
-        // Silenciar errores de perfil (por ejemplo al probar sin token)
         setProfile(null);
+        setUserIsAdmin(false);
       } finally {
         if (mounted) setProfileLoading(false);
       }
@@ -53,7 +55,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      /* animación de ancho y overflow para evitar parpadeos; duración más suave */
       className={`bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col transition-[width] duration-500 ease-in-out overflow-hidden ${isCollapsed ? "w-28" : "w-80"}`}
       aria-hidden={false}
     >
@@ -72,16 +73,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             <img
               src="/unicauca_logo.svg"
               alt="Universidad del Cauca"
-              /* transicion de tamaño y opacidad para que reduzca suavemente */
               className={`w-auto object-contain transition-all duration-500 ${isCollapsed ? "h-10 opacity-80" : "h-16 opacity-100"}`}
             />
 
-            {/* separador blanco vertical visible solo cuando no está colapsado */}
             {!isCollapsed && (
               <div className="h-10 w-px bg-white/50" aria-hidden="true" />
             )}
 
-            {/* animación de texto: usamos max-w + opacity para transición suave */}
             <div
               className={`overflow-hidden transition-all duration-300 ease-in-out ${
                 isCollapsed ? "max-w-0 opacity-0" : "max-w-[220px] opacity-100"
@@ -104,15 +102,16 @@ const Sidebar: React.FC<SidebarProps> = ({
             <User size={isCollapsed ? 18 : 32} />
           </div>
 
-          {/* info de usuario con animación de opacidad y max-width */}
           <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? "max-w-0 opacity-0" : "max-w-full opacity-100"}`}>
-            {/* mostrar nombre desde perfil si está disponible */}
             <h3 className="text-lg font-semibold">
-              {profileLoading ? "Cargando..." : profile?.nombre_usuario ?? "Carlos Ardila"}
+              {profileLoading ? "Cargando..." : profile?.nombre_usuario ?? "Usuario"}
             </h3>
             <p className="text-blue-200 text-sm">
-              {profile ? profile.email_usuario : "Coordinador de electivas"}
+              {profile ? profile.email_usuario : "Sin rol definido"}
             </p>
+            {userIsAdmin && (
+              <p className="text-orange-300 text-xs font-semibold">Administrador</p>
+            )}
           </div>
 
           <button
@@ -172,27 +171,29 @@ const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </button>
 
-        <button
-          onClick={() => {
-            setActiveSection("configuracion");
-            navigate("/config"); // navegar a la ruta de configuración
-          }}
-          className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
-            activeSection === "configuracion" ? "bg-blue-700" : "hover:bg-blue-700"
-          }`}
-        >
-          <Settings size={20} />
-          <span className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
-            Configuración
-          </span>
-        </button>
+        {/* Solo mostrar Configuración si es admin */}
+        {userIsAdmin && (
+          <button
+            onClick={() => {
+              setActiveSection("configuracion");
+              navigate("/config");
+            }}
+            className={`w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-colors duration-200 ${
+              activeSection === "configuracion" ? "bg-blue-700" : "hover:bg-blue-700"
+            }`}
+          >
+            <Settings size={20} />
+            <span className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "max-w-0 opacity-0" : "max-w-[140px] opacity-100"} text-lg font-medium`}>
+              Configuración
+            </span>
+          </button>
+        )}
       </nav>
 
-      {/* footer: logout ocupa todo el ancho y se pega al fondo */}
       <div className="mt-auto w-full p-3 border-t border-blue-700">
         <button
           onClick={() => {
-            clearToken(); // elimina el token correctamente
+            clearToken();
             window.location.href = "/login";
           }}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-md bg-red-600 hover:bg-red-700 transition text-white"

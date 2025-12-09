@@ -10,10 +10,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Usuario
-        fields = ['usuario_id', 'nombre_usuario', 'email_usuario', 'contrasenia', 'es_activo']
+        fields = ['usuario_id', 'nombre_usuario', 'email_usuario', 'contrasenia', 'es_activo', 'es_admin']
         extra_kwargs = {
             'contrasenia': {'write_only': True},
-            'usuario_id': {'read_only': True}
+            'usuario_id': {'read_only': True},
+            'es_admin': {'read_only': True}
         }
 
     def validate_contrasenia(self, value):
@@ -67,4 +68,4 @@ class UsuarioResponseSerializer(serializers.ModelSerializer):
     """Serializer para respuesta de usuario (sin contraseña)"""
     class Meta:
         model = Usuario
-        fields = ['usuario_id', 'nombre_usuario', 'email_usuario', 'es_activo']
+        fields = ['usuario_id', 'nombre_usuario', 'email_usuario', 'es_activo', 'es_admin']

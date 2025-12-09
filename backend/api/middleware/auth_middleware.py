@@ -63,6 +63,8 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
             print(f"[MIDDLEWARE] Token decodificado: {decoded_token}")
             
             user_id = decoded_token.get('user_id')
+            es_admin = decoded_token.get('es_admin', False)  # ← Agregar esta línea
+            
             if not user_id:
                 print(f"[MIDDLEWARE] user_id no encontrado en el token")
                 return JsonResponse({
@@ -89,6 +91,7 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
             # Agregar información del usuario al request
             request.user_id = user_id
             request.usuario = usuario
+            request.es_admin = es_admin  # ← Agregar esta línea
             print(f"[MIDDLEWARE] Información de usuario agregada al request")
             
         except jwt.ExpiredSignatureError:

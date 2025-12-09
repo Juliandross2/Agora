@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: Oracle123
       MYSQL_DATABASE: agora_db
     ports:
-      - "3306:3306"
+      - "3307:3306" # Cambiar de 3306 a 3307
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker-entrypoint/agora.sql:/docker-entrypoint-initdb.d/agora.sql

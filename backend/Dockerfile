@@ -3,7 +3,12 @@
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    mysql-client \
+    mariadb-client-compat \
+    pkg-config \
+    default-libmysqlclient-dev \
+    build-essential \
+    gcc \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

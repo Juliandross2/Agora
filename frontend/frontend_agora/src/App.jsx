@@ -10,13 +10,20 @@ import ComparacionDetailView from './pages/ComparacionDetailView';
 import GestionProgramas from './pages/GestionProgramas';
 import PensumActual from './pages/PensumActual';
 import GestionElectivas from './pages/GestionElectivas';
-import { getToken, isTokenValid } from './services/consumers/Auth';
+import { getToken, isTokenValid, isAdmin } from './services/consumers/Auth';
 
 const RequireAuth = ({ children }) => {
   const token = getToken();
-  // usa isTokenValid si la tienes; si no, déjalo como token != null
   if (!token || (typeof isTokenValid === 'function' && !isTokenValid(token))) {
     return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+const RequireAdmin = ({ children }) => {
+  const token = getToken();
+  if (!token || !isAdmin(token)) {
+    return <Navigate to="/home" replace />;
   }
   return children;
 };
@@ -41,11 +48,11 @@ export default function App() {
             </RequireAuth>
           }
         >
-           {/* /home protegido */}
+          {/* /home protegido */}
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
 
-          {/* config protegido */}
-          <Route path="/config" element={<RequireAuth><Config /></RequireAuth>} />
+          {/* config protegido SOLO para admins */}
+          <Route path="/config" element={<RequireAdmin><Config /></RequireAdmin>} />
 
           {/* gestión de programas protegido */}
           <Route path="/gestion-programas" element={<RequireAuth><GestionProgramas /></RequireAuth>} />
