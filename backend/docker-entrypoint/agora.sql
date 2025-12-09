@@ -72,72 +72,6 @@ CREATE TABLE `api_materia` (
 LOCK TABLES `api_materia` WRITE;
 /*!40000 ALTER TABLE `api_materia` DISABLE KEYS */;
 INSERT INTO `api_materia` VALUES (2,'Cálculo I',4,1,1,1,1),(3,'Introducción a la Informática',3,1,1,1,1),(4,'Introducción a la Ingeniería de Sistemas',1,1,1,1,1),(5,'Laboratorio de Introducción a la Informática',1,1,1,1,1),(6,'Lectura y Escritura',2,1,1,1,1),(7,'FISH 1',2,1,1,1,1),(8,'Álgebra Lineal',4,1,1,1,2),(9,'Cálculo II',4,1,1,1,2),(10,'Laboratorio de Mecánica',1,1,1,1,2),(11,'Laboratorio de Programación Orientada a Objetos',1,1,1,1,2),(12,'Mecánica',3,1,1,1,2),(13,'Programación Orientada a Objetos',3,1,1,1,2),(14,'FISH 2',2,1,1,1,2),(15,'Cálculo III',4,1,1,1,3),(16,'Electromagnetismo',3,1,1,1,3),(17,'Estructuras de Datos I',3,1,1,1,3),(18,'Laboratorio de Electromagnetismo',1,1,1,1,3),(19,'Laboratorio de Estructuras de Datos I',1,1,1,1,3),(20,'FISH 3',2,1,1,1,3),(21,'Bases de Datos I',3,1,1,1,4),(22,'Ecuaciones Diferenciales Ordinarias',4,1,1,1,4),(23,'Estructura de Datos II',3,1,1,1,4),(24,'Laboratorio de Bases de Datos I',1,1,1,1,4),(25,'Laboratorio de Estructuras de Datos II',1,1,1,1,4),(26,'Vibraciones y Ondas',3,1,1,1,4),(27,'Análisis Numérico',4,1,1,1,5),(28,'Arquitectura Computacional',4,1,1,1,5),(29,'Bases de Datos II',3,1,1,1,5),(30,'Ingeniería de Software I',3,1,1,1,5),(31,'Laboratorio de Bases de Datos II',1,1,1,1,5),(32,'Laboratorio de Ingeniería de Software I',1,1,1,1,5),(33,'Teoría de la Computación',3,1,1,1,5),(34,'Estadística y Probabilidad',4,1,1,1,6),(35,'Estructura de Lenguajes',3,1,1,1,6),(36,'Ingeniería de Software II',3,1,1,1,6),(37,'Laboratorio de Estructura de Lenguajes',1,1,1,1,6),(38,'Laboratorio de Ingeniería de Software II',1,1,1,1,6),(39,'Sistemas Operativos',3,1,1,1,6),(40,'Laboratorio de Sistemas Operativos',1,1,1,1,6),(41,'Ingeniería de Software III',3,1,1,1,7),(42,'Inteligencia Artificial',3,1,1,1,7),(43,'Laboratorio de Ingeniería de Software III',1,1,1,1,7),(44,'Laboratorio de Sistemas Distribuidos',1,1,1,1,7),(45,'Metodología de la Investigación',3,1,1,1,7),(46,'Sistemas Distribuidos',3,1,1,1,7),(47,'Teoría y Dinámica de Sistemas',3,1,1,1,7),(48,'Calidad de Software',3,1,1,1,8),(49,'Electiva I',3,0,1,1,8),(50,'Electiva II',3,0,1,1,8),(51,'Investigación de Operaciones',4,1,1,1,8),(52,'Proyecto I',3,1,1,1,8),(53,'Redes',3,1,1,1,8),(54,'Electiva III',3,0,1,1,9),(55,'Electiva IV',3,0,1,1,9),(56,'Fundamentos de Economía',3,1,1,1,9),(57,'Gestión de Proyectos Informáticos',3,1,1,1,9),(58,'Gestión Empresarial',3,1,1,1,9),(59,'Legislación Laboral',1,1,1,1,9),(60,'Proyecto II',3,1,1,1,9),(61,'Electiva V',3,0,1,1,10),(62,'Ética',2,1,1,1,10),(63,'Trabajo de Grado',14,1,1,1,10);
-INSERT INTO api_materia (nombre_materia, creditos, es_obligatoria, es_activa, pensum_id_id, semestre) VALUES
-('Algebra Lineal', 3, 1, 1, 2, 1),
-('Cálculo Diferencial', 3, 1, 1, 2, 1),
-('Introducción a la Ingeniería', 2, 1, 1, 2, 1),
-('Introducción a los Circuitos Electricos', 1, 1, 1, 2, 1),
-('Lectura y Escritura', 2, 1, 1, 2, 1),
-
-('Cálculo Integral', 3, 1, 1, 2, 2),
-('Circuitos de Corriente Directa', 2, 1, 1, 2, 2),
-('Ética', 2, 1, 1, 2, 2),
-('Mecánica', 3, 1, 1, 2, 2),
-('Programación Orientada a Objetos', 3, 1, 1, 2, 2),
-
-('Cálculo Vectorial', 3, 1, 1, 2, 3),
-('Circuitos de Corriente Alterna', 3, 1, 1, 2, 3),
-('Circuitos Digitales', 3, 1, 1, 2, 3),
-('Circuitos Electrónicos', 3, 1, 1, 2, 3),
-('Ecuaciones Diferenciales Ordinarias', 3, 1, 1, 2, 3),
-('Electromagnetismo', 3, 1, 1, 2, 3),
-
-('Algoritmos Computacionales', 3, 1, 1, 2, 4),
-('Campos', 3, 1, 1, 2, 4),
-('Circuitos Analógicos', 3, 1, 1, 2, 4),
-('Diseño de Circuitos con VHDL', 3, 1, 1, 2, 4),
-('Señales y Sistemas', 3, 1, 1, 2, 4),
-('Vibraciones y Ondas', 3, 1, 1, 2, 4),
-
-('Fundamentos de Redes de Telecomunicaciones', 3, 1, 1, 2, 5),
-('Medios de Transmisión', 3, 1, 1, 2, 5),
-('Microcontroladores', 3, 1, 1, 2, 5),
-('Modelado y Bases de Datos', 3, 1, 1, 2, 5),
-('Probabilidad y Estadística', 3, 1, 1, 2, 5),
-('Procesamiento Digital de Señales (PDS)', 3, 1, 1, 2, 5),
-
-('Circuitos de RF', 3, 1, 1, 2, 6),
-('Comunicaciones Analógicas', 3, 1, 1, 2, 6),
-('Comunicaciones Digitales', 3, 1, 1, 2, 6),
-('Informática para Telecomunicaciones', 3, 1, 1, 2, 6),
-('Metodología de la Investigación', 3, 1, 1, 2, 6),
-('Sistemas de Conmutación', 3, 1, 1, 2, 6),
-
-('Anteproyecto', 2, 1, 1, 2, 7),
-('Comunicaciones Móviles e Inalámbricas', 3, 1, 1, 2, 7),
-('Emprendimiento e Innovación en Ingeniería', 2, 1, 1, 2, 7),
-('Radiocomunicaciones', 3, 1, 1, 2, 7),
-('Servicios Convergentes', 3, 1, 1, 2, 7),
-('Sistemas de Comunicaciones Ópticas', 3, 1, 1, 2, 7),
-('Sistemas Embebidos y Tiempo Real', 3, 1, 1, 2, 7),
-
-('Competencias Ciudadanas', 2, 1, 1, 2, 8),
-('Electiva 1', 3, 1, 1, 2, 8),
-('Electiva 2', 3, 1, 1, 2, 8),
-('Énfasis 1', 3, 1, 1, 2, 8),
-('Laboratorio I de Sistemas de Telecomunicaciones', 3, 1, 1, 2, 8),
-('Proyecto Integrador', 3, 1, 1, 2, 8),
-
-('Electiva 3', 3, 1, 1, 2, 9),
-('Énfasis 2', 3, 1, 1, 2, 9),
-('Énfasis 3', 3, 1, 1, 2, 9),
-('Formulación y Gestión de Proyectos en TIC', 2, 1, 1, 2, 9),
-('Laboratorio II de Sistemas de Telecomunicaciones', 3, 1, 1, 2, 9),
-('Laboratorio de Servicios Telemáticos', 3, 1, 1, 2, 9),
-
-('Análisis Económico de Inversiones en TIC', 2, 1, 1, 2, 10),
-('Énfasis 4', 3, 1, 1, 2, 10),
-('Trabajo de Grado', 11, 1, 1, 2, 10);
 /*!40000 ALTER TABLE `api_materia` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -237,7 +171,7 @@ CREATE TABLE `api_usuario` (
   `nombre_usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email_usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `es_activo` tinyint(1) NOT NULL,
-  `es_admin` tinyint(1) NOT NULL DEFAULT 0,
+  `es_admin` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`usuario_id`),
   UNIQUE KEY `email_usuario` (`email_usuario`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -452,7 +386,7 @@ CREATE TABLE `configuracion_elegibilidad` (
 
 LOCK TABLES `configuracion_elegibilidad` WRITE;
 /*!40000 ALTER TABLE `configuracion_elegibilidad` DISABLE KEYS */;
-INSERT INTO `configuracion_elegibilidad` VALUES (4,3.0,6,1,'2025-12-02 21:34:06.728322','2025-12-09 06:52:23.574052',1);
+INSERT INTO `configuracion_elegibilidad` VALUES (2,0.6000,3.0,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-25 01:01:17.978450','2025-11-25 01:01:17.978477',1),(3,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-25 01:01:39.505886','2025-11-25 01:01:39.505922',1),(4,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-25 01:01:46.531281','2025-11-25 01:01:46.531304',1),(5,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-25 01:03:01.292618','2025-11-25 01:03:01.292896',1),(6,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-25 01:03:16.037919','2025-11-25 01:03:16.037951',1),(7,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:22:29.233213','2025-11-27 19:22:29.233285',1),(8,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:26:02.241730','2025-11-27 19:26:02.241979',1),(9,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:27:55.803859','2025-11-27 19:27:55.803936',1),(10,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:34:32.485923','2025-11-27 19:34:32.485993',1),(11,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:37:16.332242','2025-11-27 19:37:16.332308',1),(12,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:37:29.005731','2025-11-27 19:37:29.005766',1),(13,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:38:46.171909','2025-11-27 19:38:46.171971',1),(14,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:40:00.222317','2025-11-27 19:40:00.222390',1),(15,0.7000,3.3,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:40:22.938561','2025-11-27 19:40:22.938610',1),(16,0.7000,3.0,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:41:47.046052','2025-11-27 19:41:47.046136',1),(17,0.7000,3.0,5,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:43:13.076985','2025-11-27 19:43:13.077125',1),(18,0.7000,3.0,7,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:43:44.586986','2025-11-27 19:43:44.587104',1),(19,0.7000,3.0,7,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',0,'2025-11-27 19:55:07.333325','2025-11-27 19:55:07.333385',1),(20,0.7000,3.0,8,'{\"8\": {\"max_periodos\": 7, \"min_creditos\": 112}, \"9\": {\"max_periodos\": 8, \"min_creditos\": 132}, \"10\": {\"max_periodos\": 9, \"min_creditos\": 151}}',1,'2025-11-27 19:56:24.796694','2025-11-27 19:56:24.796763',1);
 /*!40000 ALTER TABLE `configuracion_elegibilidad` ENABLE KEYS */;
 UNLOCK TABLES;
 
