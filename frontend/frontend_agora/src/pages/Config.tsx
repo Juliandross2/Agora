@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Settings, Edit2, Trash2 } from 'lucide-react';
 import { getProfile, desactivarUsuario, listarUsuarios, activarUsuario } from '../services/consumers/UsuarioClient';
+import { obtenerConfiguracionPrograma, eliminarConfiguracion } from '../services/consumers/ConfiguracionClient';
+import { listarProgramas } from '../services/consumers/ProgramaClient';
 import { clearToken } from '../services/consumers/Auth';
 import type { User } from '../services/domain/UsuarioModels';
+import type { Programa } from '../services/domain/ProgramaModels';
+import type { Configuracion } from '../services/consumers/ConfiguracionClient';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RegisterFormDialog from '../components/RegisterFormDialog';
+import ConfiguracionFormDialog from '../components/ConfiguracionFormDialog';
 import { useActiveSection } from '../DashboardLayout';
 
 export default function Config() {
@@ -35,6 +40,25 @@ export default function Config() {
 
   // --- estado para registro de usuarios ---
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+
+  // --- estado para configuración de programas ---
+  const [programas, setProgramas] = useState<Programa[]>([]);
+  const [programasLoading, setProgramasLoading] = useState(false);
+  const [programasError, setProgramasError] = useState<string | null>(null);
+
+  // configuraciones por programa
+  const [configuraciones, setConfiguraciones] = useState<Map<number, Configuracion | null>>(new Map());
+  const [configLoadingMap, setConfigLoadingMap] = useState<Map<number, boolean>>(new Map());
+
+  // diálogo de configuración
+  const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [selectedPrograma, setSelectedPrograma] = useState<Programa | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<Configuracion | null>(null);
+
+  // diálogo de confirmación para eliminar
+  const [showConfirmDeleteConfig, setShowConfirmDeleteConfig] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<Configuracion | null>(null);
+  const [deleteConfigLoading, setDeleteConfigLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -75,6 +99,43 @@ export default function Config() {
     loadUsers();
     return () => { mounted = false; };
   }, [enqueueSnackbar]);
+
+  // cargar programas
+  useEffect(() => {
+    let mounted = true;
+    const loadProgramas = async () => {
+      setProgramasLoading(true);
+      setProgramasError(null);
+      try {
+        const response = await listarProgramas();
+        if (!mounted) return;
+        setProgramas(response.programas);
+      } catch (e: any) {
+        if (!mounted) return;
+        const msg = e?.message || 'Error al cargar programas';
+        setProgramasError(msg);
+        enqueueSnackbar(msg, { variant: 'error' });
+      } finally {
+        if (mounted) setProgramasLoading(false);
+      }
+    };
+    loadProgramas();
+    return () => { mounted = false; };
+  }, [enqueueSnackbar]);
+
+  // cargar configuración de un programa
+  const loadConfiguracion = async (programaId: number) => {
+    setConfigLoadingMap(prev => new Map(prev).set(programaId, true));
+    try {
+      const config = await obtenerConfiguracionPrograma(programaId);
+      setConfiguraciones(prev => new Map(prev).set(programaId, config));
+    } catch (e: any) {
+      // Si no existe configuración, simplemente guardamos null
+      setConfiguraciones(prev => new Map(prev).set(programaId, null));
+    } finally {
+      setConfigLoadingMap(prev => new Map(prev).set(programaId, false));
+    }
+  };
 
   // abrir diálogo en lugar de window.confirm (propia cuenta)
   const handleDeactivate = async () => {
@@ -144,6 +205,43 @@ export default function Config() {
 
   const handleUserRegistered = (updatedUsers: User[]) => {
     setUsers(updatedUsers);
+  };
+
+  // handlers para configuración
+  const handleEditConfig = (programa: Programa) => {
+    setSelectedPrograma(programa);
+    const config = configuraciones.get(programa.programa_id) || null;
+    setSelectedConfig(config);
+    setShowConfigDialog(true);
+  };
+
+  const handleDeleteConfig = (config: Configuracion) => {
+    setConfigToDelete(config);
+    setShowConfirmDeleteConfig(true);
+  };
+
+  const onConfirmDeleteConfig = async () => {
+    if (!configToDelete) return;
+    setShowConfirmDeleteConfig(false);
+    setDeleteConfigLoading(true);
+    try {
+      await eliminarConfiguracion(configToDelete.configuracion_id);
+      enqueueSnackbar('Configuración eliminada correctamente', { variant: 'success' });
+      // recargar configuración del programa
+      const programaId = configToDelete.programa_id;
+      await loadConfiguracion(programaId);
+    } catch (e: any) {
+      const msg = e?.message || 'Error al eliminar configuración';
+      enqueueSnackbar(msg, { variant: 'error' });
+    } finally {
+      setDeleteConfigLoading(false);
+      setConfigToDelete(null);
+    }
+  };
+
+  const handleConfigSaved = async () => {
+    if (!selectedPrograma) return;
+    await loadConfiguracion(selectedPrograma.programa_id);
   };
 
   return (
@@ -242,6 +340,86 @@ export default function Config() {
         )}
       </div>
 
+      {/* Sección de Configuración de Programas */}
+      <div className="bg-white rounded-xl p-6 shadow border">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Configuración de Programas
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">{programas.length} programas disponibles</p>
+          </div>
+        </div>
+
+        {programasLoading && <div className="text-center text-gray-600">Cargando programas...</div>}
+        {programasError && <div className="text-center text-red-600">{programasError}</div>}
+
+        {!programasLoading && !programasError && (
+          <div className="space-y-3">
+            {programas.map((programa) => {
+              const config = configuraciones.get(programa.programa_id);
+              const isLoading = configLoadingMap.get(programa.programa_id) ?? false;
+
+              return (
+                <div
+                  key={programa.programa_id}
+                  className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-sm transition bg-gray-50"
+                >
+                  <div className="w-12 h-12 bg-blue-900 text-white rounded-full flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-5 h-5" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-800">{programa.nombre_programa}</div>
+                    
+                    {isLoading ? (
+                      <div className="text-xs text-gray-500 mt-1">Cargando configuración...</div>
+                    ) : config ? (
+                      <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                        <div>Nota aprobatoria: <span className="font-semibold">{config.nota_aprobatoria}</span></div>
+                        <div>Semestre límite: <span className="font-semibold">{config.semestre_limite_electivas}</span></div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-orange-600 mt-1 font-medium">Sin configuración</div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => loadConfiguracion(programa.programa_id)}
+                      disabled={isLoading}
+                      className="px-3 py-1 text-sm rounded-md bg-gray-300 text-gray-700 hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      {isLoading ? 'Cargando...' : 'Recargar'}
+                    </button>
+
+                    <button
+                      onClick={() => handleEditConfig(programa)}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 text-sm rounded-md bg-blue-900 text-white hover:bg-blue-800 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      {config ? 'Editar' : 'Crear'}
+                    </button>
+
+                    {config && (
+                      <button
+                        onClick={() => handleDeleteConfig(config)}
+                        disabled={isLoading}
+                        className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Dialogs */}
       <ConfirmDialog
         isOpen={showConfirmDeactivate}
@@ -269,6 +447,33 @@ export default function Config() {
         isOpen={showRegisterDialog}
         onClose={() => setShowRegisterDialog(false)}
         onUserRegistered={handleUserRegistered}
+      />
+
+      <ConfiguracionFormDialog
+        isOpen={showConfigDialog}
+        onClose={() => {
+          setShowConfigDialog(false);
+          setSelectedPrograma(null);
+          setSelectedConfig(null);
+        }}
+        onSaved={handleConfigSaved}
+        configuracion={selectedConfig}
+        programaId={selectedPrograma?.programa_id ?? 0}
+        programaNombre={selectedPrograma?.nombre_programa ?? ''}
+      />
+
+      <ConfirmDialog
+        isOpen={showConfirmDeleteConfig}
+        title="Eliminar configuración"
+        description={configToDelete ? `¿Eliminar configuración de ${configToDelete.programa_nombre}?` : 'Eliminar configuración?'}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        loading={deleteConfigLoading}
+        onConfirm={onConfirmDeleteConfig}
+        onCancel={() => {
+          setShowConfirmDeleteConfig(false);
+          setConfigToDelete(null);
+        }}
       />
     </div>
   );

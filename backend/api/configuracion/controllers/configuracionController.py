@@ -111,9 +111,9 @@ def obtener_configuracion(programa_id):
 		{
 			'name': 'programa_id',
 			'in': 'query',
-			'required': False,
+			'required': True,
 			'schema': {'type': 'integer'},
-			'description': 'ID del programa. Si no se proporciona, retorna error'
+			'description': 'ID del programa (requerido)'
 		}
 	],
 	responses={
@@ -121,22 +121,52 @@ def obtener_configuracion(programa_id):
 			description="Configuración obtenida exitosamente",
 			examples=[
 				OpenApiExample(
-					'Ejemplo de respuesta',
+					'Éxito - Configuración encontrada',
 					value={
-						"configuracion_id": 1,
+						"configuracion_id": 20,
 						"programa_id": 1,
-						"programa_nombre": "Ingeniería de Sistemas",
+						"programa_nombre": "Ingeniería Sistemas",
 						"nota_aprobatoria": 3.0,
-						"semestre_limite_electivas": 7,
-						"es_activo": True
-					}
+						"semestre_limite_electivas": 8,
+						"es_activo": True,
+						"fecha_creacion": "2025-11-27T19:56:24.796694",
+						"fecha_actualizacion": "2025-11-27T19:56:24.796763"
+					},
+					status_codes=['200']
 				)
 			]
 		),
-		404: OpenApiResponse(description="No se encontró configuración")
+		400: OpenApiResponse(
+			description="Parámetro inválido",
+			examples=[
+				OpenApiExample(
+					'Error - programa_id inválido',
+					value={
+						"error": "programa_id inválido",
+						"details": "El programa_id debe ser un número entero"
+					},
+					status_codes=['400']
+				)
+			]
+		),
+		404: OpenApiResponse(
+			description="Configuración no encontrada",
+			examples=[
+				OpenApiExample(
+					'Error - No existe configuración',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración activa para el programa 1",
+						"accion": "Debe crear una configuración usando POST /api/configuracion/crear/"
+					},
+					status_codes=['404']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Obtener configuración activa"
+	summary="Obtener configuración activa por programa",
+	description="Obtiene la configuración de elegibilidad activa para un programa específico.\n\n**Parámetros a enviar:**\n- `programa_id` (query, requerido): ID del programa (número entero)\n\n**Ejemplo de solicitud:**\n```\nGET /api/configuracion/obtener/?programa_id=1\n```\n\n**Respuesta exitosa (200):**\nRetorna un objeto JSON con la configuración activa incluyendo ID, programa, nota aprobatoria, semestre límite y fechas.\n\n**Errores posibles:**\n- 400: programa_id no es un número entero\n- 404: No existe configuración activa para el programa"
 )
 @api_view(['GET'])
 def obtener_configuracion_activa(request):
@@ -191,17 +221,61 @@ def obtener_configuracion_activa(request):
 		name='CrearConfiguracionRequest',
 		fields={
 			'programa_id': serializers.IntegerField(required=True, help_text='ID del programa (requerido)'),
-			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar. Por defecto: 3.0'),
-			'semestre_limite_electivas': serializers.IntegerField(required=False, help_text='Semestre límite para exigir materias aprobadas. Por defecto: 7'),
+			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar (0-5). Por defecto: 3.0'),
+			'semestre_limite_electivas': serializers.IntegerField(required=False, help_text='Semestre límite para exigir todas las materias aprobadas. Por defecto: 7'),
 		}
 	),
 	responses={
-		201: OpenApiResponse(description="Configuración creada exitosamente"),
-		400: OpenApiResponse(description="Datos inválidos"),
+		201: OpenApiResponse(
+			description="Configuración creada exitosamente",
+			examples=[
+				OpenApiExample(
+					'Éxito - Configuración creada',
+					value={
+						"mensaje": "Configuración creada exitosamente",
+						"configuracion_id": 21,
+						"programa_id": 1,
+						"programa_nombre": "Ingeniería Sistemas",
+						"configuracion": {
+							"nota_aprobatoria": 3.0,
+							"semestre_limite_electivas": 8
+						}
+					},
+					status_codes=['201']
+				)
+			]
+		),
+		400: OpenApiResponse(
+			description="Datos inválidos",
+			examples=[
+				OpenApiExample(
+					'Error - programa_id faltante',
+					value={
+						"error": "programa_id es requerido",
+						"details": "Debe proporcionar el ID del programa para crear la configuración"
+					},
+					status_codes=['400']
+				)
+			]
+		),
+		404: OpenApiResponse(
+			description="Programa no encontrado",
+			examples=[
+				OpenApiExample(
+					'Error - Programa no existe',
+					value={
+						"error": "Programa no encontrado",
+						"details": "No existe un programa con ID 999"
+					},
+					status_codes=['404']
+				)
+			]
+		),
 		500: OpenApiResponse(description="Error interno del servidor")
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Crear/actualizar configuración"
+	summary="Crear nueva configuración",
+	description="Crea una nueva configuración de elegibilidad para un programa.\nSi ya existe una configuración activa para el programa, la desactiva automáticamente y crea la nueva.\n\n**Body (JSON) a enviar:**\n```json\n{\n  \"programa_id\": 1,\n  \"nota_aprobatoria\": 3.0,\n  \"semestre_limite_electivas\": 8\n}\n```\n\n**Campos requeridos:**\n- `programa_id` (integer): ID del programa\n\n**Campos opcionales:**\n- `nota_aprobatoria` (float): Valor entre 0 y 5 (default: 3.0)\n- `semestre_limite_electivas` (integer): Número de semestre (default: 7)\n\n**Respuesta exitosa (201):**\nRetorna objeto con mensaje de confirmación, IDs y datos de la configuración creada.\n\n**Errores posibles:**\n- 400: Datos incompletos o inválidos\n- 404: El programa no existe"
 )
 @api_view(['POST'])
 def crear_configuracion(request):
@@ -271,14 +345,58 @@ def crear_configuracion(request):
 			'in': 'query',
 			'required': False,
 			'schema': {'type': 'integer'},
-			'description': 'ID del programa. Si no se proporciona, lista todas las configuraciones'
+			'description': 'ID del programa para filtrar. Si no se proporciona, lista todas'
 		}
 	],
 	responses={
-		200: OpenApiResponse(description="Lista de configuraciones"),
+		200: OpenApiResponse(
+			description="Lista de configuraciones obtenida",
+			examples=[
+				OpenApiExample(
+					'Éxito - Lista de configuraciones',
+					value={
+						"total": 2,
+						"configuraciones": [
+							{
+								"configuracion_id": 20,
+								"programa_id": 1,
+								"programa_nombre": "Ingeniería Sistemas",
+								"nota_aprobatoria": 3.0,
+								"semestre_limite_electivas": 8,
+								"es_activo": True,
+								"fecha_creacion": "2025-11-27T19:56:24"
+							},
+							{
+								"configuracion_id": 19,
+								"programa_id": 1,
+								"programa_nombre": "Ingeniería Sistemas",
+								"nota_aprobatoria": 3.0,
+								"semestre_limite_electivas": 7,
+								"es_activo": False,
+								"fecha_creacion": "2025-11-27T19:55:07"
+							}
+						]
+					},
+					status_codes=['200']
+				)
+			]
+		),
+		400: OpenApiResponse(
+			description="Parámetro inválido",
+			examples=[
+				OpenApiExample(
+					'Error - programa_id no es número',
+					value={
+						"error": "programa_id inválido"
+					},
+					status_codes=['400']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Listar configuraciones"
+	summary="Listar todas las configuraciones",
+	description="Lista las configuraciones de elegibilidad con opción de filtrar por programa.\n\n**Parámetros a enviar:**\n- `programa_id` (query, opcional): Filtra solo configuraciones de ese programa\n\n**Ejemplos de solicitud:**\n```\nGET /api/configuracion/listar/                    # Lista todas\nGET /api/configuracion/listar/?programa_id=1      # Solo del programa 1\n```\n\n**Respuesta exitosa (200):**\nRetorna objeto con `total` (cantidad) y array `configuraciones` con todos los registros ordenados por fecha más reciente.\n\n**Errores posibles:**\n- 400: El programa_id no es un número entero"
 )
 @api_view(['GET'])
 def listar_configuraciones(request):
@@ -340,7 +458,7 @@ def listar_configuraciones(request):
 			description="Configuración obtenida exitosamente",
 			examples=[
 				OpenApiExample(
-					'Ejemplo de respuesta',
+					'Éxito - Configuración encontrada',
 					value={
 						"configuracion_id": 5,
 						"programa_id": 1,
@@ -350,14 +468,28 @@ def listar_configuraciones(request):
 						"es_activo": True,
 						"fecha_creacion": "2025-11-27T19:00:00",
 						"fecha_actualizacion": "2025-11-27T19:00:00"
-					}
+					},
+					status_codes=['200']
 				)
 			]
 		),
-		404: OpenApiResponse(description="Configuración no encontrada")
+		404: OpenApiResponse(
+			description="Configuración no encontrada",
+			examples=[
+				OpenApiExample(
+					'Error - ID no existe',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración con ID 999"
+					},
+					status_codes=['404']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Obtener configuración por ID"
+	summary="Obtener configuración por ID",
+	description="Obtiene los detalles completos de una configuración específica usando su ID.\n\n**Parámetro a enviar:**\n- `id` (path, requerido): ID de la configuración\n\n**Ejemplo de solicitud:**\n```\nGET /api/configuracion/20/\n```\n\n**Respuesta exitosa (200):**\nRetorna objeto JSON con todos los detalles de la configuración incluyendo fechas de creación y actualización.\n\n**Errores posibles:**\n- 404: No existe configuración con ese ID"
 )
 @api_view(['GET'])
 def obtener_configuracion_por_id(request, id):
@@ -395,12 +527,21 @@ def obtener_configuracion_por_id(request, id):
 
 @extend_schema(
 	request=None,
+	parameters=[
+		{
+			'name': 'programa_id',
+			'in': 'path',
+			'required': True,
+			'schema': {'type': 'integer'},
+			'description': 'ID del programa'
+		}
+	],
 	responses={
 		200: OpenApiResponse(
-			description="Configuración activa del programa obtenida exitosamente",
+			description="Configuración activa del programa obtenida",
 			examples=[
 				OpenApiExample(
-					'Ejemplo de respuesta',
+					'Éxito - Configuración activa encontrada',
 					value={
 						"configuracion_id": 5,
 						"programa_id": 1,
@@ -410,14 +551,37 @@ def obtener_configuracion_por_id(request, id):
 						"es_activo": True,
 						"fecha_creacion": "2025-11-27T19:00:00",
 						"fecha_actualizacion": "2025-11-27T19:00:00"
-					}
+					},
+					status_codes=['200']
 				)
 			]
 		),
-		404: OpenApiResponse(description="No se encontró configuración activa para el programa")
+		404: OpenApiResponse(
+			description="Programa no encontrado o sin configuración",
+			examples=[
+				OpenApiExample(
+					'Error - Programa no existe',
+					value={
+						"error": "Programa no encontrado",
+						"details": "No existe un programa con ID 999"
+					},
+					status_codes=['404']
+				),
+				OpenApiExample(
+					'Error - Sin configuración activa',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración activa para el programa 1",
+						"accion": "Debe crear una usando POST /api/configuracion/crear/"
+					},
+					status_codes=['404']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Obtener configuración activa por programa"
+	summary="Obtener configuración activa de un programa",
+	description="Obtiene la configuración activa de un programa específico por su ID.\n\n**Parámetro a enviar:**\n- `programa_id` (path, requerido): ID del programa\n\n**Ejemplo de solicitud:**\n```\nGET /api/configuracion/programa/1/\n```\n\n**Respuesta exitosa (200):**\nRetorna la configuración activa del programa con todos sus detalles.\n\n**Errores posibles:**\n- 404: El programa no existe o no tiene configuración activa"
 )
 @api_view(['GET'])
 def obtener_configuracion_por_programa(request, programa_id):
@@ -469,17 +633,49 @@ def obtener_configuracion_por_programa(request, programa_id):
 	request=inline_serializer(
 		name='ActualizarConfiguracionRequest',
 		fields={
-			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar'),
+			'nota_aprobatoria': serializers.FloatField(required=False, help_text='Nota mínima para aprobar (0-5)'),
 			'semestre_limite_electivas': serializers.IntegerField(required=False, help_text='Semestre límite'),
 		}
 	),
 	responses={
-		200: OpenApiResponse(description="Configuración actualizada exitosamente"),
-		404: OpenApiResponse(description="Configuración no encontrada"),
+		200: OpenApiResponse(
+			description="Configuración actualizada exitosamente",
+			examples=[
+				OpenApiExample(
+					'Éxito - Configuración actualizada',
+					value={
+						"mensaje": "Configuración actualizada exitosamente",
+						"configuracion_id": 20,
+						"configuracion": {
+							"programa_id": 1,
+							"programa_nombre": "Ingeniería Sistemas",
+							"nota_aprobatoria": 3.5,
+							"semestre_limite_electivas": 8,
+							"es_activo": True
+						}
+					},
+					status_codes=['200']
+				)
+			]
+		),
+		404: OpenApiResponse(
+			description="Configuración no encontrada",
+			examples=[
+				OpenApiExample(
+					'Error - ID no existe',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración con ID 999"
+					},
+					status_codes=['404']
+				)
+			]
+		),
 		400: OpenApiResponse(description="Datos inválidos")
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Actualizar configuración existente"
+	summary="Actualizar configuración",
+	description="Actualiza los campos de una configuración existente sin crear una nueva.\n\n**Body (JSON) a enviar:**\n```json\n{\n  \"nota_aprobatoria\": 3.5,\n  \"semestre_limite_electivas\": 8\n}\n```\n\n**Campos que se pueden actualizar:**\n- `nota_aprobatoria` (float, opcional): Valor entre 0 y 5\n- `semestre_limite_electivas` (integer, opcional): Número de semestre\n\n**Métodos soportados:** PUT o PATCH\n\n**Ejemplo de solicitud:**\n```\nPUT /api/configuracion/20/actualizar/\n```\n\n**Respuesta exitosa (200):**\nRetorna mensaje de confirmación con los datos actualizados.\n\n**Errores posibles:**\n- 400: Datos inválidos\n- 404: La configuración no existe"
 )
 @api_view(['PUT', 'PATCH'])
 def actualizar_configuracion(request, id):
@@ -526,16 +722,67 @@ def actualizar_configuracion(request, id):
 	request=inline_serializer(
 		name='ToggleConfiguracionRequest',
 		fields={
-			'es_activo': serializers.BooleanField(required=True, help_text='True para activar, False para desactivar')
+			'es_activo': serializers.BooleanField(required=True, help_text='true para activar, false para desactivar')
 		}
 	),
 	responses={
-		200: OpenApiResponse(description="Estado de configuración actualizado"),
-		404: OpenApiResponse(description="Configuración no encontrada"),
-		400: OpenApiResponse(description="Datos inválidos")
+		200: OpenApiResponse(
+			description="Estado de configuración actualizado",
+			examples=[
+				OpenApiExample(
+					'Éxito - Configuración activada',
+					value={
+						"mensaje": "Configuración activada exitosamente",
+						"configuracion_id": 20,
+						"programa_id": 1,
+						"programa_nombre": "Ingeniería Sistemas",
+						"es_activo": True
+					},
+					status_codes=['200']
+				),
+				OpenApiExample(
+					'Éxito - Configuración desactivada',
+					value={
+						"mensaje": "Configuración desactivada exitosamente",
+						"configuracion_id": 19,
+						"programa_id": 1,
+						"programa_nombre": "Ingeniería Sistemas",
+						"es_activo": False
+					},
+					status_codes=['200']
+				)
+			]
+		),
+		404: OpenApiResponse(
+			description="Configuración no encontrada",
+			examples=[
+				OpenApiExample(
+					'Error - ID no existe',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración con ID 999"
+					},
+					status_codes=['404']
+				)
+			]
+		),
+		400: OpenApiResponse(
+			description="Datos inválidos o operación no permitida",
+			examples=[
+				OpenApiExample(
+					'Error - Campo faltante',
+					value={
+						"error": "Campo requerido",
+						"details": "Debe proporcionar el campo \"es_activo\" (true/false)"
+					},
+					status_codes=['400']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Activar/Desactivar configuración"
+	summary="Activar o desactivar configuración",
+	description="Activa o desactiva una configuración específica.\nAl activar una configuración, automáticamente desactiva otras del mismo programa.\n\n**Body (JSON) a enviar:**\n```json\n{\n  \"es_activo\": true\n}\n```\n\n**Campos requeridos:**\n- `es_activo` (boolean): true para activar, false para desactivar\n\n**Ejemplo de solicitud:**\n```\nPOST /api/configuracion/20/toggle/\n```\n\n**Respuesta exitosa (200):**\nRetorna mensaje de confirmación con el nuevo estado de la configuración.\n\n**Comportamiento especial:**\nSi activa una configuración, desactiva automáticamente las demás configuraciones activas del mismo programa.\n\n**Errores posibles:**\n- 400: Campo \"es_activo\" faltante o inválido\n- 404: La configuración no existe"
 )
 @api_view(['POST'])
 def toggle_configuracion(request, id):
@@ -588,13 +835,61 @@ def toggle_configuracion(request, id):
 
 @extend_schema(
 	request=None,
+	parameters=[
+		{
+			'name': 'id',
+			'in': 'path',
+			'required': True,
+			'schema': {'type': 'integer'},
+			'description': 'ID de la configuración'
+		}
+	],
 	responses={
-		204: OpenApiResponse(description="Configuración eliminada exitosamente"),
-		404: OpenApiResponse(description="Configuración no encontrada"),
-		400: OpenApiResponse(description="No se puede eliminar la configuración activa")
+		200: OpenApiResponse(
+			description="Configuración eliminada exitosamente",
+			examples=[
+				OpenApiExample(
+					'Éxito - Configuración eliminada',
+					value={
+						"mensaje": "Configuración eliminada exitosamente",
+						"configuracion_id": 19,
+						"programa": "Ingeniería Sistemas"
+					},
+					status_codes=['200']
+				)
+			]
+		),
+		404: OpenApiResponse(
+			description="Configuración no encontrada",
+			examples=[
+				OpenApiExample(
+					'Error - ID no existe',
+					value={
+						"error": "Configuración no encontrada",
+						"details": "No existe configuración con ID 999"
+					},
+					status_codes=['404']
+				)
+			]
+		),
+		400: OpenApiResponse(
+			description="No se puede eliminar configuración activa",
+			examples=[
+				OpenApiExample(
+					'Error - Configuración activa',
+					value={
+						"error": "No se puede eliminar configuración activa",
+						"details": "Primero desactive la configuración antes de eliminarla",
+						"accion": "POST /api/configuracion/20/toggle/ con es_activo=false"
+					},
+					status_codes=['400']
+				)
+			]
+		)
 	},
 	tags=['configuracion-elegibilidad'],
-	summary="Eliminar configuración"
+	summary="Eliminar configuración",
+	description="Elimina una configuración de la base de datos.\n\n⚠️ **IMPORTANTE:** No se pueden eliminar configuraciones activas. Primero debe desactivarlas.\n\n**Parámetro a enviar:**\n- `id` (path, requerido): ID de la configuración\n\n**Ejemplo de solicitud:**\n```\nDELETE /api/configuracion/19/eliminar/\n```\n\n**Respuesta exitosa (200):**\nRetorna mensaje de confirmación con ID y nombre del programa.\n\n**Restricción importante:**\nNo se puede eliminar una configuración mientras esté activa. Debe desactivarla primero usando el endpoint de toggle.\n\n**Errores posibles:**\n- 400: La configuración está activa\n- 404: La configuración no existe"
 )
 @api_view(['DELETE'])
 def eliminar_configuracion(request, id):
