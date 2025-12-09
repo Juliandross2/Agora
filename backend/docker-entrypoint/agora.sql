@@ -171,9 +171,10 @@ CREATE TABLE `api_usuario` (
   `nombre_usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email_usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `es_activo` tinyint(1) NOT NULL,
+  `es_admin` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`usuario_id`),
   UNIQUE KEY `email_usuario` (`email_usuario`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -182,7 +183,7 @@ CREATE TABLE `api_usuario` (
 
 LOCK TABLES `api_usuario` WRITE;
 /*!40000 ALTER TABLE `api_usuario` DISABLE KEYS */;
-INSERT INTO `api_usuario` VALUES (1,'pbkdf2_sha256$1000000$rBCLa0IKrJAPATN4MVXSIB$VN3CZs8KurxFNE0vRRBrG3h1pRtk85ijVB4WiYEq7i4=','Test User','test@ejemplo.com',1),(2,'pbkdf2_sha256$1000000$kAMUv8MefAwVIyMxrlrQY6$aWxxmiuPXF0GOhyKs8njhaEuJ3Qd9F7ghIwPzgmyyME=','john_doe','john.doe@example.com',1),(3,'pbkdf2_sha256$1000000$Vljr51DPvzhwgG0y911mVu$AKhGC7PYkRP3O+y7KC+QIlfdqvWTbUD71/LoPE8CYX0=','Carlos Ardila','cardila@unicauca.edu.co',1),(4,'pbkdf2_sha256$1000000$vBQGDCWPhkHoaRoHODa6yt$81neIs9ihGvo5dZbxduWRca0Rq3JsGVIaK/uR4iBbTA=','Carlos Ardila2','cardila2@unicauca.edu.co',1);
+INSERT INTO `api_usuario` VALUES (1,'pbkdf2_sha256$1000000$Vljr51DPvzhwgG0y911mVu$AKhGC7PYkRP3O+y7KC+QIlfdqvWTbUD71/LoPE8CYX0=','Carlos Ardila','cardila@unicauca.edu.co',1,1);
 /*!40000 ALTER TABLE `api_usuario` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -77,7 +77,8 @@ class UsuarioService:
             refresh = RefreshToken()
             refresh['user_id'] = usuario.usuario_id
             refresh['email'] = usuario.email_usuario
-            
+            refresh['es_admin'] = usuario.es_admin  # ← Agregar esta línea
+    
             usuario_serializer = UsuarioResponseSerializer(usuario)
             
             return True, {
@@ -119,7 +120,8 @@ class UsuarioService:
             refresh = RefreshToken()
             refresh['user_id'] = usuario.usuario_id
             refresh['email'] = usuario.email_usuario
-            
+            refresh['es_admin'] = usuario.es_admin  # ← Agregar esta línea
+    
             # Serializar usuario para respuesta
             usuario_serializer = UsuarioResponseSerializer(usuario)
             

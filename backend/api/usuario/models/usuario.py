@@ -5,7 +5,8 @@ class Usuario(models.Model):
     contrasenia = models.CharField(max_length=100, null=False)
     nombre_usuario = models.CharField(max_length=100, null=False)
     email_usuario = models.EmailField(max_length=100, null=False, unique=True)
-    es_activo = models.BooleanField(default=True) # True si el usuario está activo, False si está inactivo
+    es_activo = models.BooleanField(default=True)  # True si el usuario está activo, False si está inactivo
+    es_admin = models.BooleanField(default=False)  # True si el usuario es administrador
 
     def __str__(self):
         return self.nombre_usuario
