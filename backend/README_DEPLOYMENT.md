@@ -1,26 +1,29 @@
-# Instrucciones de Despliegue
+# AGORA BACKEND - INSTALACIÓN CLIENTE
 
-## Requisitos Previos
-- Docker instalado
-- Docker Compose instalado
+## Instalación Automática
 
-## Pasos de Instalación
+### Requisitos Previos
+- Windows 10/11
+- Docker Desktop instalado ([Descargar aquí](https://docker.com/products/docker-desktop))
 
-1. Extrae los archivos del proyecto
-2. Abre una terminal en la carpeta del proyecto
-3. Ejecuta:
-   ```bash
-   docker-compose up --build
-   ```
+### Instalación
+1. Extraer todos los archivos en una carpeta
+2. Hacer doble clic en `instalar.bat`
+3. Esperar a que termine la instalación
+4. El sistema estará disponible en `http://localhost:8000`
 
-4. En otra terminal, ejecuta migraciones (primera vez):
-   ```bash
-   docker-compose exec django python manage.py migrate
-   ```
+### Uso Diario
+- **Iniciar**: Doble clic en `instalar.bat`
+- **Detener**: Doble clic en `detener.bat`  
+- **Reiniciar**: Doble clic en `reiniciar.bat`
 
-5. Accede a: `http://localhost:8000`
+### Credenciales de Acceso
+- **Email**: cardila@unicauca.edu.co
+- **Contraseña**: [La que tengas configurada]
 
-## Detener la aplicación
-```bash
-docker-compose down
-```
+### Documentación API
+- Swagger: http://localhost:8000/api/docs/swagger/
+
+## Solución de Problemas
+- Si no inicia: Verificar que Docker Desktop esté corriendo
+- Si hay errores de puerto: Cerrar otras aplicaciones que usen puerto 8000
