@@ -5,13 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    minify: true, // Usa el minificador por defecto de Vite (esbuild)
     rollupOptions: {
       output: {
         manualChunks: (id) => {
